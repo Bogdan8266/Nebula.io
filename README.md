@@ -8,16 +8,15 @@
  ---
 ## 📷 3D Render
 
-<details>
-<summary><b>👀 Click to see 3D Renders (White & Brown)</b></summary>
-<br>
+<p align="center">
+  <img src="image/desing/white 1.png" width="45%" />
+  <img src="image/desing/white 2.png" width="45%" />
+</p>
 
-| Snow White | Dark Brown |
-| :---: | :---: |
-| <img src="image/desing/white 1.png" width="300"/> | <img src="image/desing/brown 1.png" width="300"/> |
-| <img src="image/desing/white 2.png" width="300"/> | <img src="image/desing/brown 2.png" width="300"/> |
-
-</details>
+<p align="center">
+  <img src="image/desing/brown 1.png" width="45%" />
+  <img src="image/desing/brown 2.png" width="45%" />
+</p>
  
   > *See full gallery in [`/media`](/media) folder.* 
   > ---
