@@ -43,21 +43,21 @@
 ---
 ### 💾 Storage 
 * **Slot:** MicroSD (TF Card). 
-* * **Format:** FAT32/exFAT. 
-* * **Use Case:** Data logging (CSV), OTA Payloads, AOD Image Assets. 
+  * **Format:** FAT32/exFAT. 
+  * **Use Case:** Data logging (CSV), OTA Payloads, AOD Image Assets. 
 ---
 
 ## 📱 NEBULA COMPANION APP 
 A bleeding-edge mobile application for telemetry and control. 
-* **Stack:** Native Android (Kotlin). 
-* * **UI:** Jetpack Compose + **Material 3 Expressive**. 
-* * **Requirements:** Android 16 (Baklava) or higher. Only for the brave. 
-* * **Features:** * BLE Real-time telemetry. * Pixel-Art Editor for E-Ink wallpaper. * Firmware OTA Updates. * "Cyber-Pairing" UX. --- ## 🛠️ MANUFACTURE INFO The PCB pushes the limits of DIY manufacturing: * **EDA:** Designed in **EasyEDA**. 
-* * **Stack:** **8-Layers** (Signal Integrity & Thermal dissipation focus). 
-* * **Finish:** ENIG (Immersion Gold). 
-* * **Features:** V-Cut daughterboard, Kelvin connections for shunt resistors. 
-* **[📂 DOWNLOAD GERBER FILES](./hardware/gerbers)**
-*  **[📂 VIEW SCHEMATICS](./hardware/schematics)** --- ## 📜 LICENSE This project is open-source under the 
+  **Stack:** Native Android (Kotlin). 
+  * **UI:** Jetpack Compose + **Material 3 Expressive**. 
+  * **Requirements:** Android 16 (Baklava) or higher. Only for the brave. 
+  * **Features:** * BLE Real-time telemetry. * Pixel-Art Editor for E-Ink wallpaper. * Firmware OTA Updates. * "Cyber-Pairing" UX. --- ## 🛠️ MANUFACTURE INFO The PCB pushes the limits of DIY manufacturing: * **EDA:** Designed in **EasyEDA**. 
+  * **Stack:** **8-Layers** (Signal Integrity & Thermal dissipation focus). 
+  * **Finish:** ENIG (Immersion Gold). 
+  * **Features:** V-Cut daughterboard, Kelvin connections for shunt resistors. 
+  * **[📂 DOWNLOAD GERBER FILES](./hardware/gerbers)**
+    * **[📂 VIEW SCHEMATICS](./hardware/schematics)** --- ## 📜 LICENSE This project is open-source under the 
 * **MIT License**. Use it, hack it, build it. Just don't blame me if you burn your sensors. --- <div align="center"> *"Any sufficiently advanced technology is indistinguishable from magic."* <br><sub>(c) 1823 Nebula Project</sub>  </div>
 
 
