@@ -10,8 +10,8 @@
  <!-- TABLE FOR IMAGES: Replace '#' with your real links to images in the /images folder --> 
  | **Semen white**  |  **Shitty brown** | 
  |:---:|:---:| 
- |<img src="image/Desing/white 1.png" alt="white color 1" width="300"/>  <img src="image/desing/brown 1.png" alt="brown color 1" width="300"/> | 
- |<img src="image/Desing/white 2.png" alt="white color 2" width="300"/> |  <img src="image/Desing/brown 2.png" alt="brown color 2" width="300"/> | 
+ |<img src="image/desing/white 1.png" alt="white color 1" width="300"/> |  <img src="image/desing/brown 1.png" alt="brown color 1" width="300"/> | 
+ |<img src="image/desing/white 2.png" alt="white color 2" width="300"/> |  <img src="image/desing/brown 2.png" alt="brown color 2" width="300"/> | 
   > *See full gallery in [`/media`](/media) folder.* 
   > ---
   
