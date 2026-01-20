@@ -21,7 +21,7 @@
 * **MCU:** Espressif **ESP32-S3 WROOM-1** (N16R8 supported). 
 * * **Core:** Dual-Core Xtensa LX7 @ 240 MHz. 
 * * **Conn:** WiFi + BLE 5.0 (Mesh capable). ### 👁️ Interface 
-* * **Display:** 1.54" E-Ink (ePaper) Panel. 
+*  **Display:** 1.54" E-Ink (ePaper) Panel. 
 * * **Driver:** SSD1681 (WeAct Studio). 
 * * **Res:** 200x200 px. 
 * * **Vibe:** Monochromatic aesthetics with partial refresh. 
