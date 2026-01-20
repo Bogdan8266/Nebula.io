@@ -6,12 +6,19 @@
  Built around the **ESP32-S3 WROOM-1**, featuring an Always-On **E-Ink display** and a complex sensor array. The device is powered by a high-density energy stack and encased in a custom shell. 
  > **Disclaimer:** This device includes high-current output drivers. It was designed for educational purposes, pneumatics research, and thermal control experiments. 
  ---
- ## 📷 3D render
- <!-- TABLE FOR IMAGES: Replace '#' with your real links to images in the /images folder --> 
- | **Semen white**  |  **Shitty brown** | 
- |:---:|:---:| 
- |<img src="image/desing/white 1.png" alt="white color 1" width="300"/> |  <img src="image/desing/brown 1.png" alt="brown color 1" width="300"/> | 
- |<img src="image/desing/white 2.png" alt="white color 2" width="300"/> |  <img src="image/desing/brown 2.png" alt="brown color 2" width="300"/> | 
+## 📷 3D Render
+
+<details>
+<summary><b>👀 Click to see 3D Renders (White & Brown)</b></summary>
+<br>
+
+| Snow White | Dark Brown |
+| :---: | :---: |
+| <img src="image/desing/white 1.png" width="300"/> | <img src="image/desing/brown 1.png" width="300"/> |
+| <img src="image/desing/white 2.png" width="300"/> | <img src="image/desing/brown 2.png" width="300"/> |
+
+</details>
+ 
   > *See full gallery in [`/media`](/media) folder.* 
   > ---
   
