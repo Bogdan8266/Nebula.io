@@ -8,15 +8,10 @@
  ---
 ## 📷 3D Render
 
-<p align="center">
-  <img src="image/desing/white 1.png" width="45%" />
-  <img src="image/desing/white 2.png" width="45%" />
-</p>
-
-<p align="center">
-  <img src="image/desing/brown 1.png" width="45%" />
-  <img src="image/desing/brown 2.png" width="45%" />
-</p>
+| ❄️ Snow White | 🐻 Dark Brown |
+| :---: | :---: |
+| <img src="image/desing/white 1.png" width="300"/> | <img src="image/desing/brown 1.png" width="300"/> |
+| <img src="image/desing/white 2.png" width="300"/> | <img src="image/desing/brown 2.png" width="300"/> |
  
   > *See full gallery in [`/media`](/media) folder.* 
   > ---
