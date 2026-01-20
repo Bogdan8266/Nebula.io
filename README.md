@@ -47,17 +47,50 @@
   * **Use Case:** Data logging (CSV), OTA Payloads, AOD Image Assets. 
 ---
 
-## 📱 NEBULA COMPANION APP 
-A bleeding-edge mobile application for telemetry and control. 
-  **Stack:** Native Android (Kotlin). 
-  * **UI:** Jetpack Compose + **Material 3 Expressive**. 
-  * **Requirements:** Android 16 (Baklava) or higher. Only for the brave. 
-  * **Features:** * BLE Real-time telemetry. * Pixel-Art Editor for E-Ink wallpaper. * Firmware OTA Updates. * "Cyber-Pairing" UX. --- ## 🛠️ MANUFACTURE INFO The PCB pushes the limits of DIY manufacturing: * **EDA:** Designed in **EasyEDA**. 
-  * **Stack:** **8-Layers** (Signal Integrity & Thermal dissipation focus). 
-  * **Finish:** ENIG (Immersion Gold). 
-  * **Features:** V-Cut daughterboard, Kelvin connections for shunt resistors. 
-  * **[📂 DOWNLOAD GERBER FILES](./hardware/gerbers)**
-    * **[📂 VIEW SCHEMATICS](./hardware/schematics)** --- ## 📜 LICENSE This project is open-source under the 
-* **MIT License**. Use it, hack it, build it. Just don't blame me if you burn your sensors. --- <div align="center"> *"Any sufficiently advanced technology is indistinguishable from magic."* <br><sub>(c) 1823 Nebula Project</sub>  </div>
+## 📱 NEBULA COMPANION APP
+*A bleeding-edge mobile application for telemetry and control.*
+
+> [!WARNING]
+> **System Requirements:** Android 16 (Baklava) or higher. Only for the brave.
+
+* **Tech Stack:** `Native Android (Kotlin)` + `Jetpack Compose`
+* **UI Design:** **Material 3 Expressive**
+* **Key Features:** * 📡 **BLE Real-time telemetry** — Stay synced with your hardware.
+    * 🎨 **Pixel-Art Editor** — Create custom E-Ink wallpapers.
+    * 🚀 **Firmware OTA Updates** — Seamless wireless flashing.
+    * 🔗 **"Cyber-Pairing" UX** — Next-gen device discovery.
+
+---
+
+## 🛠️ MANUFACTURE INFO
+The PCB pushes the limits of DIY manufacturing with a focus on signal integrity:
+
+| Parameter | Specification |
+| :--- | :--- |
+| **EDA Tool** | [EasyEDA](https://easyeda.com) |
+| **PCB Stack** | **8-Layers** (Signal Integrity & Thermal focus) |
+| **Finish** | ENIG (Immersion Gold) |
+| **Special Features** | V-Cut daughterboard, Kelvin shunt connections |
+
+### 📂 Technical Assets
+* 📥 **[DOWNLOAD GERBER FILES](./hardware/gerbers)** — Ready for production.
+* 📑 **[VIEW SCHEMATICS](./hardware/schematics)** — Detailed circuit diagrams.
+
+---
+
+## 📜 LICENSE
+This project is open-source and available under the **MIT License**.
+
+> Use it, hack it, build it. Just don't blame me if you burn your sensors. 🔥
+
+---
+
+<div align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=60&section=footer" width="100%"/>
+  <br>
+  <i>"Any sufficiently advanced technology is indistinguishable from magic."</i>
+  <br>
+  <sub>© 1823 Nebula Project</sub>
+</div>
 
 
