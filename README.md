@@ -17,19 +17,12 @@
   
 ## 🔧 TECH SPECS 
 
-### 🧠 The Brains
-* **MCU:** Espressif **ESP32-S3 WROOM-1** (N16R8 supported)
-  * └─ **Core:** Dual-Core Xtensa LX7 @ 240 MHz
-  * └─ **Conn:** WiFi + BLE 5.0 (Mesh capable)
-
-### 👁️ Interface
-* **Display:** 1.54" E-Ink (ePaper) Panel
-  * ├─ **Driver:** SSD1681 (WeAct Studio)
-  * ├─ **Res:** 200x200 px
-  * └─ **Vibe:** Monochromatic aesthetics with partial refresh
-* **Controls:**
-  * ├─ **Switches:** 4x Tactile Micro-Switches (3.7mm Ultra-Low Profile)
-  * └─ **Motion:** IMU Control (Gestures/Wake-on-Lift)
+| Component | Specification | Details |
+| :--- | :--- | :--- |
+| **🧠 MCU** | **ESP32-S3 WROOM-1** | Dual-Core @ 240MHz, WiFi + BLE 5.0 |
+| **👁️ Display** | **1.54" E-Ink** | 200x200px, SSD1681 Driver |
+| **🎮 Controls** | **Tactile & IMU** | 4x Switches + Motion/Gestures |
+  
 ---
  ### 📡 Sensor Array (Inputs) 
  1. **Airflow / Pressure:** `BMP388` (Precision Barometric Sensor). Used for pneumatics triggers. 
