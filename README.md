@@ -8,7 +8,7 @@
  ---
 ## 📷 3D Render
 
-| ❄️ Snow White | 🐻 Dark Brown |
+| 🥛 Semen White | 🍫 Shitty  Brown |
 | :---: | :---: |
 | <img src="image/desing/white 1.png" width="300"/> | <img src="image/desing/brown 1.png" width="300"/> |
 | <img src="image/desing/white 2.png" width="300"/> | <img src="image/desing/brown 2.png" width="300"/> |
