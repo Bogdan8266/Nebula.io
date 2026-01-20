@@ -10,8 +10,8 @@
  <!-- TABLE FOR IMAGES: Replace '#' with your real links to images in the /images folder --> 
  | **The Core (PCB)**  |  **The Shell (3D)** | 
  |:---:|:---:| 
- |<img src="#" alt="PCB Top View" width="300"/> 
- |<img src="#" alt="3D Render" width="300"/> | 
+ |<img src="Image/Desing/desing 1.png" alt="PCB Top View" width="300"/> 
+ |<img src="Image/Desing/desing 2.png" alt="3D Render" width="300"/> | 
  | *8-Layer PCB, ENIG Finish* | *Custom Manifold Design* |
   > *See full gallery in [`/media`](/media) folder.* 
   > ---
