@@ -37,9 +37,9 @@
  ### ⚡ Power System 
  * **Source:** Li-Po 651732 cell (20C High Drain). 
  * **Charging:** `TP4056` Linear Charger logic. 
- * * **Protection:** Hardware voltage dividers + Software Low Voltage Cutoff (LVC). 
- * * **Output Stage:** Dual **AO3400 (N-MOSFET)** setup for PWM control of heating elements. 
- * * **Storage Gate:** **AO3401 (P-MOSFET)** for hard power-gating the MicroSD card (Deep Sleep optimization). 
+   * **Protection:** Hardware voltage dividers + Software Low Voltage Cutoff (LVC). 
+   * **Output Stage:** Dual **AO3400 (N-MOSFET)** setup for PWM control of heating elements. 
+   * **Storage Gate:** **AO3401 (P-MOSFET)** for hard power-gating the MicroSD card (Deep Sleep optimization). 
 ---
 ### 💾 Storage 
 * **Slot:** MicroSD (TF Card). 
