@@ -33,7 +33,7 @@
  3.  **Power Mon:** `INA226` (Bi-directional Current/Power Monitor). High-side sensing. 
  4. **Triggers:** Custom analog pneumatic switch (Puff-sensor based). 
  5. **Internal:** Hall Effect & Temperature. 
- 6. ---
+ ---
  ### ⚡ Power System 
  * **Source:** Li-Po 651732 cell (20C High Drain). 
  * **Charging:** `TP4056` Linear Charger logic. 
