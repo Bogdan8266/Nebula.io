@@ -9,6 +9,7 @@
 #include <USB.h>
 #include <USBMSC.h>
 #include <SD_MMC.h>
+#include "../led/LEDManager.h"
 
 extern "C" {
     #include "esp_vfs_fat.h"
@@ -145,6 +146,7 @@ private:
         if (esp_ptr_dma_capable(buffer)) {
             esp_err_t err = sdmmc_read_sectors(&_card, buffer, lba, bufsize / 512);
             if (err == ESP_OK) {
+                LEDManager::getInstance().setTransferActive(true);
                 _totalBytesProcessed += bufsize;
                 _bytesSinceLastUpdate += bufsize;
                 return bufsize;
@@ -171,6 +173,7 @@ private:
 
         _totalBytesProcessed += bufsize;
         _bytesSinceLastUpdate += bufsize;
+        LEDManager::getInstance().setTransferActive(true);
         return bufsize;
     }
 
@@ -182,6 +185,7 @@ private:
         if (esp_ptr_dma_capable(buffer)) {
             esp_err_t err = sdmmc_write_sectors(&_card, buffer, lba, bufsize / 512);
             if (err == ESP_OK) {
+                LEDManager::getInstance().setTransferActive(true);
                 _totalBytesProcessed += bufsize;
                 _bytesSinceLastUpdate += bufsize;
                 return bufsize;
@@ -208,6 +212,7 @@ private:
 
         _totalBytesProcessed += bufsize;
         _bytesSinceLastUpdate += bufsize;
+        LEDManager::getInstance().setTransferActive(true);
         return bufsize;
     }
 

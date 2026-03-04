@@ -39,6 +39,10 @@ public:
         _cfg = cfg;
     }
 
+    void setSleep(bool sleep) {
+        _mpu.setSleepEnabled(sleep);
+    }
+    
     void update() {
         if (!_connected) return;
         int16_t ax, ay, az, gx, gy, gz;

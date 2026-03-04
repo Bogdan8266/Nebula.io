@@ -59,13 +59,29 @@ public:
 
     String getIP() { return WiFi.localIP().toString(); }
 
+    char getRemoteKey() {
+        if (_commandBuffer == 0) return 0;
+        char k = _commandBuffer;
+        _commandBuffer = 0;
+        return k;
+    }
+
 private:
     fs::FS&   _sd;
     WebServer _server;
     bool      _connected = false;
+    char      _commandBuffer = 0;
 
     void _setupRoutes() {
         _server.on("/", HTTP_GET, [this]() { _handleRoot(); });
+        _server.on("/remote", HTTP_GET, [this]() { _handleRemote(); });
+        _server.on("/api/cmd", HTTP_GET, [this]() {
+            if (_server.hasArg("key")) {
+                String k = _server.arg("key");
+                if (k.length() > 0) _commandBuffer = k[0];
+            }
+            _server.send(200, "text/plain", "OK");
+        });
         _server.on("/delete", HTTP_POST, [this]() { _handleDelete(); });
         _server.on("/mkdir", HTTP_POST, [this]() { _handleCreateDir(); });
         
@@ -126,10 +142,65 @@ private:
         html += "<div id='speed-text' class='info' style='color:#888;'></div>";
         html += "</div>";
         
-        html += "<hr><h3>CREATE FOLDER IN " + currentDir + "</h3>";
-        html += "<input type='text' id='folder-name' placeholder='Folder Name'>";
-        html += "<button onclick='createFolder()' class='btn' style='margin-left:10px;'>CREATE</button>";
+        html += "<hr><h3>QUICK ACTIONS</h3>";
+        html += "<a href='/remote' class='btn' style='text-decoration:none;'>OPEN REMOTE CONTROL</a>";
 
+        html += _getHtmlFooter();
+        _server.send(200, "text/html", html);
+    }
+
+    void _handleRemote() {
+        String html = _getHtmlHeader();
+        html += R"raw(
+<style>
+.remote-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 400px; margin: 20px auto; }
+.remote-btn { background: #000; color: #0f0; border: 2px solid #0f0; padding: 25px; font-size: 24px; font-weight: bold; cursor: pointer; text-align: center; }
+.remote-btn:active { background: #0f0; color: #000; }
+.remote-btn.wide { grid-column: span 2; }
+.spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 400px; margin: 0 auto; }
+.status-msg { text-align: center; margin-top: 20px; font-size: 14px; color: #888; }
+</style>
+
+<div style="text-align:center;">
+    <h2>NEBULA WEB REMOTE</h2>
+    <div class="remote-grid">
+        <div class="remote-btn" onclick="sendCmd('1')">1</div>
+        <div class="remote-btn" onclick="sendCmd('2')">2</div>
+        <div class="remote-btn" onclick="sendCmd('3')">3</div>
+        <div class="remote-btn wide" onclick="sendCmd('4')">4 (BACK)</div>
+        <div class="remote-btn" onclick="sendCmd('5')">5</div>
+    </div>
+    <div class="spec-grid">
+        <div class="remote-btn" style="color:yellow; border-color:yellow;" onclick="sendCmd('r')">RESCAN [r]</div>
+        <div class="remote-btn" style="color:cyan; border-color:cyan;" onclick="sendCmd('d')">DUMP [d]</div>
+    </div>
+    <p class="status-msg">Hint: Keyboard keys 1-5, R, D are supported.</p>
+    <a href="/" class="name" style="display:block; margin-top:30px;">[ BACK TO FILE MANAGER ]</a>
+</div>
+
+<script>
+function sendCmd(key) {
+    fetch('/api/cmd?key=' + key).then(() => {
+        // Subtle feedback
+        console.log("Cmd sent: " + key);
+    });
+}
+document.onkeydown = function(e) {
+    let k = e.key.toLowerCase();
+    if (['1','2','3','4','5','r','d'].includes(k)) {
+        sendCmd(k);
+        // Visual feedback for keyboard
+        let btns = document.getElementsByClassName('remote-btn');
+        for(let b of btns) {
+            if(b.innerText.startsWith(k.toUpperCase()) || b.innerText == k) {
+                b.style.background = "#0f0"; b.style.color = "#000";
+                setTimeout(() => { b.style.background = ""; b.style.color = ""; }, 100);
+            }
+        }
+    }
+};
+</script>
+)raw";
         html += _getHtmlFooter();
         _server.send(200, "text/html", html);
     }

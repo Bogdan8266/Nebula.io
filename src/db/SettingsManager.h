@@ -36,11 +36,38 @@ struct MPU6050Settings {
     bool     dmpEnabled   = false;
 };
 
+struct RGBColor {
+    uint8_t r = 255;
+    uint8_t g = 100;
+    uint8_t b = 50;
+};
+
+enum LEDMode { MODE_SOLID, MODE_KELVIN, MODE_RAINBOW };
+
+struct LEDSettings {
+    bool     enabled      = true;
+    uint8_t  brightness   = 50;  // 0-100%
+    uint8_t  mode         = MODE_KELVIN;
+    uint16_t kelvin       = 3500;
+    RGBColor solidColor;
+    bool     smoothness   = true;
+    uint8_t  fadeSpeed    = 50;  // 1-255
+    uint16_t autoOffSec   = 300; // 5 mins
+};
+
+struct PowerSettings {
+    uint16_t menuFreq    = 240; // Default max
+    uint16_t musicFreq   = 160;
+    uint16_t usbFreq     = 80;
+};
+
 struct SystemSettings {
     AudioSettings   audio;
     DisplaySettings display;
     UsbSettings     usb;
     MPU6050Settings mpu;
+    LEDSettings     led;
+    PowerSettings   power;
 };
 
 class SettingsManager {

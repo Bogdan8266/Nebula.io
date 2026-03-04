@@ -38,6 +38,7 @@
 #include "ui/SensorsScene.h"
 #include "db/SettingsManager.h"
 #include "sensors/MPU6050Manager.h"
+#include "led/LEDManager.h"
 
 // ── Wi-Fi ────────────────────────────────────────────────────────
 #define WIFI_SSID "Xiaomi_14F8"
@@ -48,6 +49,10 @@
 #define EPD_DC    17
 #define EPD_RST   16
 #define EPD_BUSY  18
+
+// ── Audio/Power Placeholders (Future PCB) ────────────────────────
+// #define DAC_XSMT  XX // Soft Mute
+// #define LDO_EN    XX // 3.3V LDO for Audio/SD
 
 #define SD_MMC_CLK 14
 #define SD_MMC_CMD 15
@@ -93,6 +98,64 @@ static int16_t      currentTrackIdx        = -1;
 //  Memory Management for NowPlaying Background
 // ─────────────────────────────────────────────────────────────────
 static uint8_t* currentNpBgBitmap = nullptr;
+
+// ─────────────────────────────────────────────────────────────────
+//  Power Management
+// ─────────────────────────────────────────────────────────────────
+void applyPowerSettings() {
+    uint16_t freq = sysSettings.power.menuFreq;
+    if (appState == AppState::NOW_PLAYING) freq = sysSettings.power.musicFreq;
+    if (appState == AppState::USB_SYNC) freq = sysSettings.power.usbFreq;
+    
+    // Safeguard: WiFi/Web needs at least 80MHz to be stable
+    if (freq < 80) {
+        Serial.printf("[PWR] Freq %d too low for WiFi, forcing 80MHz\n", freq);
+        freq = 80;
+    }
+
+    setCpuFrequencyMhz(freq);
+    Serial.printf("[PWR] CPU Frequency set to %d MHz\n", freq);
+}
+
+void enterDeepSleep() {
+    Serial.println("[PWR] Entering Deep Sleep...");
+    
+    // 1. Final Display Update
+    display.setFullWindow();
+    display.firstPage();
+    do {
+        display.fillScreen(GxEPD_WHITE);
+        display.setFont(nullptr);
+        display.setCursor(50, 100);
+        display.print("SLEEPING... [BOOT TO WAKE]");
+    } while (display.nextPage());
+    
+    // 2. Wait for E-Ink to finish drawing (critically important!)
+    delay(1000); 
+
+    // 3. Turn off LEDs and wait for task
+    sysSettings.led.enabled = false;
+    sysSettings.led.smoothness = false; // Disable smoothness for instant off
+    LEDManager::getInstance().resetIdleTimer(); // Ensure task wakes if it was timed out
+    delay(100); // Let LED task process it
+    
+    // Force clear for safety
+    FastLED.clear();
+    FastLED.show();
+    
+    // 4. Persistence
+    SettingsManager::save(sd, sysSettings);
+    
+    // 5. Peripheral Sleep
+    mpuManager.setSleep(true);
+    SD_MMC.end(); // De-init SD
+    
+    // 6. Wakeup Setup (GPIO0 is BOOT button)
+    esp_sleep_enable_ext0_wakeup(GPIO_NUM_0, 0); 
+    
+    Serial.flush();
+    esp_deep_sleep_start();
+}
 
 void clearNpBgBitmap() {
     if (currentNpBgBitmap) {
@@ -381,6 +444,9 @@ void setup() {
     } else {
         epd_log("SET DEFAULT");
     }
+    
+    // ── LED Ambience ─────────────────────────────────────────────
+    LEDManager::getInstance().begin(sysSettings.led);
 
     // Apply colors to all scenes based on boot settings
     systemStatus.setTime(13, 37);
@@ -433,6 +499,7 @@ void setup() {
     UsbMscManager::getInstance().init();
     Serial.println("r=Rescan  d=Dump");
     
+    applyPowerSettings();
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -441,12 +508,26 @@ void setup() {
 void loop() {
     uint32_t now = millis();
 
-    // Читати Serial
+    // Auto-apply power profile on state change
+    static AppState lastState = AppState::BOOT;
+    if (appState != lastState) {
+        lastState = appState;
+        applyPowerSettings();
+    }
+
+    // Читати Serial або Web Remote
     char raw = 0;
     if (Serial.available()) {
         raw = Serial.read();
         while (Serial.available()) Serial.read();
+    } else {
+        raw = webManager.getRemoteKey();
     }
+
+    if (raw != 0) {
+        LEDManager::getInstance().resetIdleTimer();
+    }
+
 
     // Глобальні команди
     if (raw == 'r') {
@@ -603,14 +684,14 @@ void loop() {
                 display.setCursor(2, 40);
                 if (speed > 0.1f) {
                     display.print(String(speed, 1));
-                    display.setCursor(10, 40); display.print("KB/s");
+                    display.setCursor(35, 40); display.print("KB/s");
                 } else {
                     display.print("IDLE");
                 }
                 
                 display.setCursor(2, 90);
                 display.print(String(UsbMscManager::getInstance().getTotalProcessedMB()));
-                display.setCursor(10, 90); display.print("MB");
+                display.setCursor(25, 90); display.print("MB");
                 
                 display.setCursor(2, 160);
                 display.print("EXIT [4]");
