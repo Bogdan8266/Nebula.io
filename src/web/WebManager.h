@@ -1,0 +1,316 @@
+#pragma once
+/**
+ * WebManager.h — Nebula OS Web-based File Manager
+ * 
+ * Features:
+ * - Cyberpunk Terminal Aesthetic
+ * - Streaming Upload (Supports huge files without RAM crashes)
+ * - File Listing & Deletion
+ */
+#include <WiFi.h>
+#include <WebServer.h>
+#include <FS.h>
+
+class WebManager {
+public:
+    WebManager(fs::FS& sd) : _sd(sd), _server(80) {}
+
+    void begin(const char* ssid, const char* pass) {
+        WiFi.begin(ssid, pass);
+        Serial.printf("[WEB] Connecting to %s...", ssid);
+        
+        // We handle connection in non-blocking way in loop()
+    }
+
+    void initDirectories() {
+        const char* dirs[] = {
+            "/Config",
+            "/Config/AOD",
+            "/Config/Backup",
+            "/Music",
+            "/Bitmaps",
+            "/Logs",
+            "/NebulaOS"
+        };
+        for (const char* dir : dirs) {
+            if (!_sd.exists(dir)) {
+                if (_sd.mkdir(dir)) {
+                    Serial.printf("[WEB] Created directory: %s\n", dir);
+                } else {
+                    Serial.printf("[WEB] Failed to create: %s\n", dir);
+                }
+            }
+        }
+    }
+
+    void loop() {
+        if (WiFi.status() == WL_CONNECTED && !_connected) {
+            _connected = true;
+            Serial.println("\n[WEB] Connected!");
+            Serial.print("[WEB] IP: "); Serial.println(WiFi.localIP());
+            _setupRoutes();
+            _server.begin();
+        }
+        
+        if (_connected) {
+            _server.handleClient();
+        }
+    }
+
+    String getIP() { return WiFi.localIP().toString(); }
+
+private:
+    fs::FS&   _sd;
+    WebServer _server;
+    bool      _connected = false;
+
+    void _setupRoutes() {
+        _server.on("/", HTTP_GET, [this]() { _handleRoot(); });
+        _server.on("/delete", HTTP_POST, [this]() { _handleDelete(); });
+        _server.on("/mkdir", HTTP_POST, [this]() { _handleCreateDir(); });
+        
+        // Upload handler
+        _server.on("/upload", HTTP_POST, [this]() {
+            _server.send(200, "text/plain", "Upload Success");
+        }, [this]() { _handleUpload(); });
+    }
+
+    void _handleRoot() {
+        String currentDir = "/";
+        if (_server.hasArg("dir")) {
+            currentDir = _server.arg("dir");
+        }
+        if (!currentDir.startsWith("/")) currentDir = "/" + currentDir;
+        if (!currentDir.endsWith("/")) currentDir += "/";
+
+        String html = _getHtmlHeader();
+        html += "<h3>FILES (" + currentDir + ")</h3><ul class='file-list'>";
+        
+        if (currentDir != "/") {
+            String parentDir = currentDir.substring(0, currentDir.lastIndexOf('/', currentDir.length() - 2));
+            if (parentDir == "") parentDir = "/";
+            html += "<li><a href='/?dir=" + parentDir + "' class='name'>[..] UP</a></li>";
+        }
+
+        fs::File root = _sd.open(currentDir);
+        if (root && root.isDirectory()) {
+            fs::File file = root.openNextFile();
+            while (file) {
+                const char* name = file.name();
+                String fullPath = currentDir + String(name);
+                
+                if (file.isDirectory()) {
+                    html += "<li><a href='/?dir=" + fullPath + "' class='name'>[" + String(name) + "]</a> ";
+                    html += "<button onclick=\"deletePath('" + fullPath + "')\" class='del'>[DELETE]</button></li>";
+                } else {
+                    uint32_t size = file.size();
+                    String sizeStr = (size > 1024 * 1024) ? String(size / (1024.0 * 1024.0), 1) + "MB" : String(size / 1024.0, 1) + "KB";
+                    html += "<li><span class='name'>" + String(name) + "</span> <span class='size'>[" + sizeStr + "]</span> ";
+                    html += "<button onclick=\"deletePath('" + fullPath + "')\" class='del'>[DELETE]</button></li>";
+                }
+                file.close();
+                file = root.openNextFile();
+            }
+            root.close();
+        } else {
+            html += "<li><span class='name' style='color:red;'>Failed to open directory</span></li>";
+        }
+        
+        html += "</ul><hr><h3>UPLOAD FILES TO " + currentDir + "</h3>";
+        html += "<input type='hidden' id='upload-dir' value='" + currentDir + "'>";
+        html += "<input type='file' id='file-input' multiple><br><br>";
+        html += "<button onclick='uploadFiles()' class='btn'>UPLOAD TO SD</button>";
+        html += "<div id='progress-container' style='display:none; margin-top:20px;'>";
+        html += "<div style='background:#333; width:100%; height:20px;'><div id='progress-bar' style='background:#0f0; width:0%; height:100%;'></div></div>";
+        html += "<div id='progress-text' class='info' style='margin-top:5px;'>0%</div>";
+        html += "<div id='speed-text' class='info' style='color:#888;'></div>";
+        html += "</div>";
+        
+        html += "<hr><h3>CREATE FOLDER IN " + currentDir + "</h3>";
+        html += "<input type='text' id='folder-name' placeholder='Folder Name'>";
+        html += "<button onclick='createFolder()' class='btn' style='margin-left:10px;'>CREATE</button>";
+
+        html += _getHtmlFooter();
+        _server.send(200, "text/html", html);
+    }
+
+    void _handleDelete() {
+        if (!_server.hasArg("path")) {
+            _server.send(400, "text/plain", "Missing path");
+            return;
+        }
+        String path = _server.arg("path");
+        Serial.printf("[WEB] Deleting: %s\n", path.c_str());
+        
+        fs::File file = _sd.open(path, "r");
+        if (file) {
+            bool isDir = file.isDirectory();
+            file.close();
+            
+            bool success = false;
+            if (isDir) {
+                success = _sd.rmdir(path.c_str());
+            } else {
+                success = _sd.remove(path.c_str());
+            }
+            
+            if (success) {
+                _server.send(200, "text/plain", "OK");
+            } else {
+                _server.send(500, "text/plain", "Delete failed (folder must be empty)");
+            }
+        } else {
+            _server.send(404, "text/plain", "File not found");
+        }
+    }
+
+    void _handleCreateDir() {
+        if (!_server.hasArg("path")) {
+            _server.send(400, "text/plain", "Missing path");
+            return;
+        }
+        String path = _server.arg("path");
+        if (_sd.mkdir(path.c_str())) {
+            _server.send(200, "text/plain", "OK");
+        } else {
+            _server.send(500, "text/plain", "Failed to create directory");
+        }
+    }
+
+    void _handleUpload() {
+        HTTPUpload& upload = _server.upload();
+        static fs::File uploadFile;
+
+        if (upload.status == UPLOAD_FILE_START) {
+            String dir = _server.hasArg("dir") ? _server.arg("dir") : "/";
+            if (!dir.endsWith("/")) dir += "/";
+            
+            String filename = upload.filename;
+            String fullPath = dir + filename;
+            
+            Serial.printf("[WEB] Uploading: %s\n", fullPath.c_str());
+            
+            // Delete if exists
+            if (_sd.exists(fullPath.c_str())) _sd.remove(fullPath.c_str());
+            
+            uploadFile = _sd.open(fullPath, "w");
+            if (!uploadFile) {
+                Serial.println("[WEB] Open fail!");
+            }
+        } else if (upload.status == UPLOAD_FILE_WRITE) {
+            if (uploadFile) {
+                uploadFile.write(upload.buf, upload.currentSize);
+            }
+        } else if (upload.status == UPLOAD_FILE_END) {
+            if (uploadFile) {
+                uploadFile.close();
+                Serial.printf("[WEB] Success: %lu bytes\n", upload.totalSize);
+            }
+        }
+    }
+
+    String _getHtmlHeader() {
+        return R"raw(
+<!DOCTYPE html><html><head>
+<title>NEBULA OS | FILE MANAGER</title>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<style>
+body { background: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 20px; }
+h1, h2, h3 { border-bottom: 2px solid #0f0; padding-bottom: 5px; }
+.info { color: #fff; margin: 10px 0; font-weight: bold; }
+.file-list { list-style: none; padding: 0; }
+.file-list li { padding: 8px 0; border-bottom: 1px solid #333; display: flex; align-items: center; }
+.name { flex-grow: 1; color: #0a0; text-decoration: none; }
+.name:hover { color: #fff; }
+.size { color: #888; margin: 0 15px; }
+.del { background: #000; color: #f00; font-weight: bold; border: 1px solid #f00; padding: 2px 5px; cursor: pointer; }
+.del:hover { background: #f00; color: #000; }
+.btn { background: #0f0; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; }
+.btn:hover { background: #fff; }
+hr { border: 0; border-top: 1px solid #333; margin: 20px 0; }
+input[type=file], input[type=text] { color: #fff; background: #222; border: 1px solid #555; padding: 5px; }
+</style>
+<script>
+function deletePath(path) {
+    if(confirm("Delete " + path + "?")) {
+        fetch('/delete?path=' + encodeURIComponent(path), {method: 'POST'})
+        .then(res => {
+            if(res.ok) window.location.reload();
+            else alert("Delete failed");
+        });
+    }
+}
+function createFolder() {
+    let base = document.getElementById('upload-dir').value;
+    let name = document.getElementById('folder-name').value;
+    if(!name) return;
+    let full = base + name;
+    fetch('/mkdir?path=' + encodeURIComponent(full), {method: 'POST'})
+    .then(res => {
+        if(res.ok) window.location.reload();
+        else alert("Failed to create folder");
+    });
+}
+async function uploadFiles() {
+    const input = document.getElementById('file-input');
+    const dir = document.getElementById('upload-dir').value;
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const speedText = document.getElementById('speed-text');
+    
+    if (input.files.length === 0) { alert("Select files first."); return; }
+    
+    progressContainer.style.display = 'block';
+    
+    for (let i = 0; i < input.files.length; i++) {
+        let file = input.files[i];
+        let startTime = Date.now();
+        
+        await new Promise((resolve, reject) => {
+            let xhr = new XMLHttpRequest();
+            xhr.open("POST", "/upload?dir=" + encodeURIComponent(dir), true);
+            
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    let percent = (e.loaded / e.total) * 100;
+                    progressBar.style.width = percent + "%";
+					progressText.innerText = "File " + (i+1) + "/" + input.files.length + ": " + Math.round(percent) + "%";
+					
+					let duration = (Date.now() - startTime) / 1000;
+					if(duration > 0) {
+						let bps = e.loaded / duration;
+						let kbps = bps / 1024;
+						if (kbps > 1024) {
+							speedText.innerText = (kbps / 1024).toFixed(2) + " MB/s";
+						} else {
+							speedText.innerText = kbps.toFixed(2) + " KB/s";
+						}
+					}
+                }
+            };
+            
+            xhr.onload = function() {
+                if (xhr.status == 200) { resolve(); }
+                else { alert("Upload failed: " + file.name); reject(); }
+            };
+            
+            let formData = new FormData();
+            formData.append("upload", file);
+            xhr.send(formData);
+        });
+    }
+    
+    progressText.innerText = "All files uploaded!";
+    setTimeout(() => { window.location.reload(); }, 1000);
+}
+</script>
+</head><body>
+<h1>NEBULA OS // TERMINAL_V0.1</h1>
+)raw";
+    }
+
+    String _getHtmlFooter() {
+        return "</body></html>";
+    }
+};
