@@ -51,6 +51,11 @@ public:
             toggleHeader();
             _lastToggle = nowMs;
         }
+        // Force refresh every second if in status bar mode to update elapsed time
+        if (_headerState == HeaderState::STATUS_BAR && nowMs - _lastTimeUpdate >= 1000) {
+            _lastTimeUpdate = nowMs;
+            _headerDirty = true;
+        }
     }
 
     void toggleHeader() {
@@ -103,6 +108,7 @@ private:
     bool         _headerDirty = false;
     bool         _hasArt      = false;
     uint32_t     _lastToggle  = 0;
+    uint32_t     _lastTimeUpdate = 0;
     const uint8_t* _bgBitmap  = nullptr;
     char         _title [64]  = {};
     char         _artist[64]  = {};

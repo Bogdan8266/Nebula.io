@@ -89,6 +89,7 @@ public:
         _enc.begin();
         _playing = true;
         _paused  = false;
+        _shouldSignalEof = false;
         xSemaphoreGive(_mutex);
 
         Serial.printf("[AUD] Playing: %s\n", path);
@@ -102,6 +103,7 @@ public:
             _file.close();
             _playing = false;
             _paused  = false;
+            _shouldSignalEof = false;
         }
         xSemaphoreGive(_mutex);
     }
@@ -118,14 +120,14 @@ public:
 
     bool isPlaying() const { return _playing && !_paused; }
     bool isPaused()  const { return _paused; }
-    void setEofCallback(void (*cb)()) { _eofCb = cb; }
-
-    void loop() {
+    bool isEofSignaled() {
         if (_shouldSignalEof) {
             _shouldSignalEof = false;
-            if (_eofCb) _eofCb();
+            return true;
         }
+        return false;
     }
+    void setEofCallback(void (*cb)()) { _eofCb = cb; }
 
 private:
     I2SStream            _i2s;

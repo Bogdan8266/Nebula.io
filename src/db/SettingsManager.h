@@ -2,6 +2,8 @@
 #include <Arduino.h>
 #include <FS.h>
 
+enum PhaseInversionMode { PHASE_OFF, PHASE_LEFT, PHASE_RIGHT, PHASE_ALL };
+
 struct AudioSettings {
     float    volume         = 0.05f;
     uint32_t sampleRate     = 44100;
@@ -12,6 +14,8 @@ struct AudioSettings {
     uint8_t  taskPriority   = 10;
     uint8_t  coreID         = 0;
     float    balance        = 0.0f; // -1.0 (Left) to 1.0 (Right)
+    bool     backgroundMode = false; // Keep playing while navigating menus
+    PhaseInversionMode phaseInversion = PHASE_OFF; // Phase inversion for psychoacoustic effects
 };
 
 struct DisplaySettings {
@@ -19,6 +23,12 @@ struct DisplaySettings {
     bool     skipArtInvert  = true;
     bool     partialRefresh = true;
     bool     cfFullRefresh  = false;
+    uint8_t  spiFreqMhz    = 4; // SPI clock: 2, 4, 8, 10, 20
+    
+    // Charge Pump Voltage Control (VSH1 in 0.1V units, range 24-170 = 2.4V-17V)
+    uint8_t  vsh1Menu = 150;  // 15.0V for Menu
+    uint8_t  vsh1Media = 150; // 15.0V for Media/NowPlaying
+    uint8_t  vsh1Aod = 100;    // 10.0V for AOD (lower = less power)
 };
 
 struct UsbSettings {
@@ -70,12 +80,33 @@ struct SystemSettings {
     PowerSettings   power;
 };
 
+// Bump this whenever SystemSettings struct layout changes
+static constexpr uint32_t SETTINGS_VERSION = 5;
+
+struct SettingsFileHeader {
+    uint32_t magic;   // 0xNEBULA01
+    uint32_t version; // SETTINGS_VERSION
+    uint32_t size;    // sizeof(SystemSettings)
+};
+static constexpr uint32_t SETTINGS_MAGIC = 0xEB010001;
+
 class SettingsManager {
 public:
     static bool load(fs::FS& sd, SystemSettings& settings) {
         fs::File file = sd.open("/Config/settings.bin", "r");
         if (!file) {
             Serial.println("[SET] Using defaults");
+            return false;
+        }
+        // Read and validate header
+        SettingsFileHeader hdr;
+        if (file.read((uint8_t*)&hdr, sizeof(hdr)) != sizeof(hdr) ||
+            hdr.magic != SETTINGS_MAGIC ||
+            hdr.version != SETTINGS_VERSION ||
+            hdr.size != sizeof(SystemSettings)) {
+            file.close();
+            Serial.printf("[SET] Version mismatch (v%lu sz%lu != v%lu sz%lu) — using defaults\n",
+                hdr.version, hdr.size, SETTINGS_VERSION, sizeof(SystemSettings));
             return false;
         }
         bool ok = (file.read((uint8_t*)&settings, sizeof(SystemSettings)) == sizeof(SystemSettings));
@@ -90,6 +121,8 @@ public:
             Serial.println("[SET] Save FAIL");
             return false;
         }
+        SettingsFileHeader hdr{SETTINGS_MAGIC, SETTINGS_VERSION, sizeof(SystemSettings)};
+        file.write((uint8_t*)&hdr, sizeof(hdr));
         bool ok = (file.write((uint8_t*)&settings, sizeof(SystemSettings)) == sizeof(SystemSettings));
         file.close();
         if (ok) Serial.println("[SET] Saved OK");

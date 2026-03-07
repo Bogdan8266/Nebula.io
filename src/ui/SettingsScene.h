@@ -67,8 +67,20 @@ public:
         return v;
     }
 
+    bool wantsExplorer() {
+        bool v = _wantsExplorer;
+        _wantsExplorer = false;
+        return v;
+    }
+
     bool onSelect() {
         if (_menu == SettingsMenu::CATEGORIES) {
+            if (_selectedIdx == 4) { // STORAGE
+                _menu = SettingsMenu::STORAGE;
+                _selectedIdx = 0;
+                drawFull();
+                return false;
+            }
             if (_selectedIdx == 6) { // SENSORS
                 _wantsSensors = true;
                 return false;
@@ -88,6 +100,11 @@ public:
             _menu = (SettingsMenu)(_selectedIdx + 1);
             _selectedIdx = 0;
             drawFull();
+        } else if (_menu == SettingsMenu::STORAGE) {
+            if (_selectedIdx == 4) { // BROWSE FILES
+                _wantsExplorer = true;
+                return false;
+            }
         } else {
             _handleValueAdjustment();
             _dirty = true;
@@ -103,7 +120,7 @@ public:
             return true;
         } else {
             _menu = SettingsMenu::CATEGORIES;
-            _selectedIdx = 0;
+            _selectedIdx = 4; // Return to STORAGE category
             _dirty = true;
             drawFull();
             return false;
@@ -118,6 +135,7 @@ private:
     int _selectedIdx = 0;
     bool _dirty = true;
     bool _wantsSensors = false;
+    bool _wantsExplorer = false;
 
     // Helper to identify which LED setting is at which index
     enum LEDItem { L_ENABLED, L_BRIGHTNESS, L_MODE, L_KELVIN, L_SMOOTHNESS, L_FADE_SPEED, L_AUTO_OFF, L_COLOR, L_COUNT };
@@ -138,11 +156,11 @@ private:
         return L_COUNT;
     }
 
-    int _getMaxItems() {
+        int _getMaxItems() {
         switch(_menu) {
             case SettingsMenu::CATEGORIES:   return 9;
-            case SettingsMenu::AUDIO:        return 9;
-            case SettingsMenu::DISPLAY_PAGE: return 4;
+            case SettingsMenu::AUDIO:        return 11; // +Phase Inversion
+            case SettingsMenu::DISPLAY_PAGE: return 8;  // +3x VSH1 voltage
             case SettingsMenu::USB_CFG:      return 3;
             case SettingsMenu::LIGHTING: {
                 int count = 0;
@@ -156,6 +174,7 @@ private:
                 return count;
             }
             case SettingsMenu::RTOS:         return 4;
+            case SettingsMenu::STORAGE:      return 5;
             default: return 0;
         }
     }
@@ -221,6 +240,7 @@ private:
             case SettingsMenu::USB_CFG:      return "USB CFG";
             case SettingsMenu::LIGHTING:     return "LIGHTING CFG";
             case SettingsMenu::RTOS:         return "POWER CFG";
+            case SettingsMenu::STORAGE:      return "STORAGE INFO";
             default: return "";
         }
     }
@@ -230,10 +250,10 @@ private:
             const char* cats[] = {"AUDIO", "DISPLAY", "GPIO", "AOD", "STORAGE", "USB", "SENSORS", "LIGHTING", "RTOS"};
             return cats[i];
         } else if (_menu == SettingsMenu::AUDIO) {
-            const char* audio[] = {"Volume", "Sample", "Chan", "Bits", "BufS", "BufC", "Prio", "Core", "Bal"};
+            const char* audio[] = {"Volume", "Sample", "Chan", "Bits", "BufS", "BufC", "Prio", "Core", "Bal", "Phase", "BG Mode"};
             return audio[i];
         } else if (_menu == SettingsMenu::DISPLAY_PAGE) {
-            const char* disp[] = {"Inverted", "Skip Art", "Partial", "CF Full"};
+            const char* disp[] = {"Inverted", "Skip Art", "Partial", "CF Full", "SPI MHz", "VSH1 Menu", "VSH1 Media", "VSH1 AOD"};
             return disp[i];
         } else if (_menu == SettingsMenu::USB_CFG) {
             return (i==0)?"Mode":(i==1)?"Chunk":"Freq";
@@ -253,6 +273,9 @@ private:
         } else if (_menu == SettingsMenu::RTOS) {
             const char* pwr[] = {"Menu CPU", "Music CPU", "USB CPU", "DEEP SLEEP"};
             return pwr[i];
+        } else if (_menu == SettingsMenu::STORAGE) {
+            const char* str[] = {"Total", "Used", "Free", "Music", "BROWSE FILES"};
+            return str[i];
         }
         return "";
     }
@@ -269,6 +292,11 @@ private:
                 case 6: return String(_settings->audio.taskPriority);
                 case 7: return String(_settings->audio.coreID);
                 case 8: return String(_settings->audio.balance, 1);
+                case 9: {
+                    const char* phases[] = {"OFF", "LEFT", "RIGHT", "ALL"};
+                    return phases[_settings->audio.phaseInversion];
+                }
+                case 10: return _settings->audio.backgroundMode ? "ON" : "OFF";
             }
         } else if (_menu == SettingsMenu::DISPLAY_PAGE) {
             switch(i) {
@@ -276,6 +304,10 @@ private:
                 case 1: return _settings->display.skipArtInvert ? "YES" : "NO";
                 case 2: return _settings->display.partialRefresh ? "ON" : "OFF";
                 case 3: return _settings->display.cfFullRefresh ? "ON" : "OFF";
+                case 4: return String(_settings->display.spiFreqMhz) + "M";
+                case 5: return String(_settings->display.vsh1Menu / 10.0, 1) + "V";
+                case 6: return String(_settings->display.vsh1Media / 10.0, 1) + "V";
+                case 7: return String(_settings->display.vsh1Aod / 10.0, 1) + "V";
             }
         } else if (_menu == SettingsMenu::USB_CFG) {
             if (i==0) return (_settings->usb.mode==0)?"SERIAL":(_settings->usb.mode==1)?"STORAGE":"FLASH";
@@ -308,8 +340,29 @@ private:
                 case 2: return String(_settings->power.usbFreq) + "M";
                 case 3: return "ENTER";
             }
+        } else if (_menu == SettingsMenu::STORAGE) {
+            #include <SD_MMC.h>
+            extern class MediaDB mediaDB;
+            switch(i) {
+                case 0: return _formatSize64(SD_MMC.totalBytes());
+                case 1: return _formatSize64(SD_MMC.usedBytes());
+                case 2: return _formatSize64(SD_MMC.totalBytes() - SD_MMC.usedBytes());
+                case 3: return String(mediaDB.trackCount());
+                case 4: return "";
+            }
         }
         return "";
+    }
+
+    String _formatSize64(uint64_t bytes) {
+        double sz = bytes;
+        const char* units[] = {"B", "K", "M", "G"};
+        int i = 0;
+        while (sz > 1024 && i < 3) {
+            sz /= 1024;
+            i++;
+        }
+        return String(sz, 1) + units[i];
     }
 
     void _handleValueAdjustment() {
@@ -329,6 +382,8 @@ private:
                 case 6: _settings->audio.taskPriority++; if(_settings->audio.taskPriority > 20) _settings->audio.taskPriority = 1; break;
                 case 7: _settings->audio.coreID = 1 - _settings->audio.coreID; break;
                 case 8: _settings->audio.balance += 0.2f; if(_settings->audio.balance > 1.1f) _settings->audio.balance = -1.0f; break;
+                case 9: _settings->audio.phaseInversion = (PhaseInversionMode)((_settings->audio.phaseInversion + 1) % 4); break;
+                case 10: _settings->audio.backgroundMode = !_settings->audio.backgroundMode; break;
             }
         } else if (_menu == SettingsMenu::DISPLAY_PAGE) {
             switch(_selectedIdx) {
@@ -336,6 +391,36 @@ private:
                 case 1: _settings->display.skipArtInvert = !_settings->display.skipArtInvert; break;
                 case 2: _settings->display.partialRefresh = !_settings->display.partialRefresh; break;
                 case 3: _settings->display.cfFullRefresh = !_settings->display.cfFullRefresh; break;
+                case 4: {
+                    uint8_t spis[] = {2, 4, 8, 10, 20};
+                    int idx = 0; for(;idx<5;idx++) if(spis[idx]==_settings->display.spiFreqMhz) break;
+                    _settings->display.spiFreqMhz = spis[(idx+1)%5];
+                    break;
+                }
+                case 5: { // VSH1 Menu - range 24-170 (2.4V-17V)
+                    uint8_t& v = _settings->display.vsh1Menu;
+                    v += 5; // 0.5V steps
+                    if (v > 170) v = 24;
+                    extern void applyChargePumpVoltage();
+                    applyChargePumpVoltage();
+                    break;
+                }
+                case 6: { // VSH1 Media
+                    uint8_t& v = _settings->display.vsh1Media;
+                    v += 5;
+                    if (v > 170) v = 24;
+                    extern void applyChargePumpVoltage();
+                    applyChargePumpVoltage();
+                    break;
+                }
+                case 7: { // VSH1 AOD
+                    uint8_t& v = _settings->display.vsh1Aod;
+                    v += 5;
+                    if (v > 170) v = 24;
+                    extern void applyChargePumpVoltage();
+                    applyChargePumpVoltage();
+                    break;
+                }
             }
         } else if (_menu == SettingsMenu::USB_CFG) {
             if (_selectedIdx==0) _settings->usb.mode = (_settings->usb.mode + 1) % 3;

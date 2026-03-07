@@ -15,10 +15,7 @@ struct StatusConfig {
 
 namespace Icons {
     static const char* battery(float v) {
-        if (v >= 4.05f) return "|||"; 
-        if (v >= 3.85f) return "||."; 
-        if (v >= 3.70f) return "|.."; 
-        return "!!!";                
+        return ""; // No more ASCII bars as requested
     }
     static const char* sd(bool ok)  { return ok ? "SD" : "SD!"; }
 }
@@ -28,7 +25,7 @@ public:
     StatusConfig cfg;
 
     void setBattery(float v) { _batV = v; }
-    void setTime(uint8_t h, uint8_t m) { _h = h; _m = m; }
+    void setTime(uint8_t h, uint8_t m, uint8_t s = 0) { _h = h; _m = m; _s = s; }
     void setSD(bool ok)   { _sdOk = ok; }
     void setTrack(const char* title) { strncpy(_track, title, sizeof(_track)-1); _track[sizeof(_track)-1]=0; }
     void setPlaying(bool p) { _playing = p; }
@@ -52,14 +49,22 @@ public:
         };
 
         if (cfg.showTime) {
-            char tBuf[8];
-            snprintf(tBuf, sizeof(tBuf), "%02u:%02u", _h, _m);
+            char tBuf[12];
+            if (_m >= 10) snprintf(tBuf, sizeof(tBuf), "%u:%02u", _h * 60 + _m, _s);
+            else snprintf(tBuf, sizeof(tBuf), "%u:%02u", _m, _s); // Actually user wants M:SS
+            // Let's use a better logic for M:SS vs MM:SS
+            uint32_t totalSec = _h * 3600 + _m * 60 + _s;
+            uint32_t mm = totalSec / 60;
+            uint32_t ss = totalSec % 60;
+            if (mm >= 10) snprintf(tBuf, sizeof(tBuf), "%02u:%02u", mm, ss);
+            else snprintf(tBuf, sizeof(tBuf), "%u:%02u", mm, ss);
+            
             drawOutline(tBuf, x, y);
         }
 
         if (cfg.showBattery) {
             char bBuf[32];
-            snprintf(bBuf, sizeof(bBuf), "%.2fV %s", _batV, Icons::battery(_batV));
+            snprintf(bBuf, sizeof(bBuf), "%.2fV", _batV);
             // rough alignment
             int16_t bx = x + width - (strlen(bBuf) * 11) - 8;
             if (bx < 80) bx = 80; 
@@ -86,8 +91,12 @@ public:
         };
 
         // 1. Time (Left)
-        char tBuf[8];
-        snprintf(tBuf, sizeof(tBuf), "%02u:%02u", _h, _m);
+        char tBuf[12];
+        uint32_t totalSec = _h * 3600 + _m * 60 + _s;
+        uint32_t mm = totalSec / 60;
+        uint32_t ss = totalSec % 60;
+        if (mm >= 10) snprintf(tBuf, sizeof(tBuf), "%02u:%02u", mm, ss);
+        else snprintf(tBuf, sizeof(tBuf), "%u:%02u", mm, ss);
         drawOutline(tBuf, x, y);
 
         // 2. Track Name (Center, truncated)
@@ -105,7 +114,7 @@ public:
 
         // 3. Bat (Right)
         char bBuf[16];
-        snprintf(bBuf, sizeof(bBuf), "%.1fV %s", _batV, Icons::battery(_batV));
+        snprintf(bBuf, sizeof(bBuf), "%.1fV", _batV);
         int16_t bx1, by1; uint16_t bw, bh;
         display.getTextBounds(bBuf, 0, 0, &bx1, &by1, &bw, &bh);
         drawOutline(bBuf, x + width - bw - 2, y);
@@ -113,7 +122,7 @@ public:
 
 private:
     float    _batV    = 3.7f;
-    uint8_t  _h = 0, _m = 0;
+    uint8_t  _h = 0, _m = 0, _s = 0;
     bool     _sdOk    = true;
     bool     _playing = false;
     char     _track[64] = {};

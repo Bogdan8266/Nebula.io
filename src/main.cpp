@@ -39,6 +39,7 @@
 #include "db/SettingsManager.h"
 #include "sensors/MPU6050Manager.h"
 #include "led/LEDManager.h"
+#include "ui/FileExplorerScene.h"
 
 // ── Wi-Fi ────────────────────────────────────────────────────────
 #define WIFI_SSID "Xiaomi_14F8"
@@ -71,6 +72,7 @@ MediaScanner scanner;
 SystemSettings sysSettings;
 SettingsScene  settingsScene;
 SensorsScene   sensorsScene;
+FileExplorerScene explorerScene;
 MPU6050Manager mpuManager;
 
 // ── Scenes ────────────────────────────────────────────────────────
@@ -80,7 +82,7 @@ MainMenuScene<Display, fs::FS> mainMenu;
 StatusWidget          systemStatus;
 NowPlaying<Display>   nowPlaying(display);
 
-enum class AppState { BOOT, MAIN_MENU, COVER_FLOW, SONG_LIST, NOW_PLAYING, SETTINGS, USB_SYNC, SENSORS };
+enum class AppState { BOOT, MAIN_MENU, COVER_FLOW, SONG_LIST, NOW_PLAYING, SETTINGS, USB_SYNC, SENSORS, FILE_EXPLORER };
 AppState appState = AppState::BOOT;
 NebulaPlayer audioPlayer;
 WebManager   webManager(sd);
@@ -98,6 +100,144 @@ static int16_t      currentTrackIdx        = -1;
 //  Memory Management for NowPlaying Background
 // ─────────────────────────────────────────────────────────────────
 static uint8_t* currentNpBgBitmap = nullptr;
+static uint32_t trackStartTime = 0;
+static uint32_t totalPauseTime = 0;
+static uint32_t pauseStartTime = 0;
+
+// ─────────────────────────────────────────────────────────────────
+//  Waveform LUT for SSD1681 - Fast vs Quality
+// ─────────────────────────────────────────────────────────────────
+// Fast LUT: Minimal phases, short times = fast refresh
+// Quality LUT: Full phases, proper times = best image quality
+
+// Standard full waveform (from GxEPD2 library, optimized)
+static const uint8_t waveformFull[] = {
+    // VS settings for each phase (48 phases x 4 LUTs x 2 bits = 384 bits = 48 bytes)
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    // TP (time per phase) - 48 bytes
+    0x01, 0x01, 0x01, 0x01, 0x02, 0x02, 0x04, 0x04,
+    0x08, 0x08, 0x10, 0x10, 0x20, 0x20, 0x40, 0x40,
+    0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    // RP (repeat count) - 12 bytes
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    // SR (state repeat) - 24 bytes  
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+    // FR (frame rate) - 12 bytes
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    // XON - 3 bytes
+    0x00, 0x00, 0x00,
+    // EOPT, Gate/Source/VCOM - 5 bytes
+    0x02, 0x00, 0x3F, 0x00, 0x00
+};
+
+// Fast waveform - fewer phases, shorter times
+static const uint8_t waveformFast[] = {
+    // VS settings - minimal
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    // TP - VERY SHORT for fast refresh!
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    // RP
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    // SR
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+    // FR
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    // XON
+    0x00, 0x00, 0x00,
+    // EOPT, Gate/Source/VCOM
+    0x02, 0x00, 0x3F, 0x00, 0x00
+};
+
+static bool currentWaveformFast = false;
+
+// Load waveform LUT to SSD1681
+void loadWaveformLUT(const uint8_t* lut) {
+    // Command 0x32: Write LUT register (153 bytes)
+    digitalWrite(EPD_CS, LOW);
+    digitalWrite(EPD_DC, LOW);
+    SPI.transfer(0x32); // Write LUT
+    digitalWrite(EPD_CS, HIGH);
+    
+    delayMicroseconds(10);
+    
+    // Send 153 bytes of LUT data
+    digitalWrite(EPD_CS, LOW);
+    digitalWrite(EPD_DC, HIGH);
+    for (int i = 0; i < 153; i++) {
+        SPI.transfer(lut[i]);
+    }
+    digitalWrite(EPD_CS, HIGH);
+    
+    Serial.println("[WF] LUT loaded");
+}
+
+// Apply waveform based on current state
+void applyWaveform() {
+    bool wantFast = (appState == AppState::MAIN_MENU || 
+                    appState == AppState::COVER_FLOW || 
+                    appState == AppState::SONG_LIST ||
+                    appState == AppState::SETTINGS);
+    
+    if (wantFast != currentWaveformFast) {
+        currentWaveformFast = wantFast;
+        const uint8_t* lut = wantFast ? waveformFast : waveformFull;
+        loadWaveformLUT(lut);
+        Serial.printf("[WF] %s mode (state=%d)\n", wantFast ? "FAST" : "QUALITY", (int)appState);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Charge Pump Voltage Control (SSD1681)
+// ─────────────────────────────────────────────────────────────────
+void applyChargePumpVoltage() {
+    uint8_t vsh1;
+    if (appState == AppState::NOW_PLAYING) {
+        vsh1 = sysSettings.display.vsh1Media;
+    } else {
+        vsh1 = sysSettings.display.vsh1Menu;
+    }
+    
+    uint8_t vsh2 = 50; // 5V
+    uint8_t vsl = 0x32; // -15V
+    
+    digitalWrite(EPD_CS, LOW);
+    digitalWrite(EPD_DC, LOW);
+    SPI.transfer(0x04); // Command 0x04
+    
+    digitalWrite(EPD_DC, HIGH);
+    SPI.transfer(vsh1);
+    SPI.transfer(vsh2);
+    SPI.transfer(vsl);
+    digitalWrite(EPD_CS, HIGH);
+    
+    Serial.printf("[CP] VSH1=%d.%dV\n", vsh1/10, vsh1%10);
+}
 
 // ─────────────────────────────────────────────────────────────────
 //  Power Management
@@ -319,6 +459,9 @@ void switchToNowPlaying(const TrackRecord& track, int16_t trackIdx = -1) {
     }
 
     audioPlayer.play(track.path);
+    trackStartTime = millis();
+    totalPauseTime = 0;
+    pauseStartTime = 0;
 }
 
 void switchToMenu() {
@@ -438,15 +581,33 @@ void setup() {
         epd_log("IMU N/C");
     }
 
+    // ── SD MMC Mount ─────────────────────────────────────────────
+    Serial.print("[SD] Mounting... ");
+    if (!initSD()) {
+        Serial.println("FAIL");
+        epd_log("SD MOUNT FAIL!");
+        // We continue with defaults if SD fails
+    } else {
+        Serial.println("OK");
+        epd_log("SD OK");
+    }
+
     // ── Налаштування ─────────────────────────────────────────────
     if (SettingsManager::load(sd, sysSettings)) {
         epd_log("SET LOADED");
+        applyPowerSettings(); // Apply loaded frequency immediately
+        // Apply SPI freq from settings
+        display.init(115200, false, sysSettings.display.spiFreqMhz, false);
     } else {
         epd_log("SET DEFAULT");
     }
     
     // ── LED Ambience ─────────────────────────────────────────────
     LEDManager::getInstance().begin(sysSettings.led);
+
+    // ── Folder & DB ──────────────────────────────────────────────
+    webManager.initDirectories();
+    initMediaDB(false);
 
     // Apply colors to all scenes based on boot settings
     systemStatus.setTime(13, 37);
@@ -466,23 +627,12 @@ void setup() {
     // ── Ініціалізація I2S / PCM5102 ────────────────────────────────
     if (audioPlayer.begin(sd, sysSettings)) {
         epd_log("DAC OK");
+        audioPlayer.setEofCallback([](){
+             // We'll handle EOF in the main loop to avoid sync issues withswitchToNowPlaying
+        });
     } else {
         epd_log("DAC FAIL!");
     }
-
-    Serial.print("[SD] Mounting... ");
-    if (!initSD()) {
-        Serial.println("FAIL");
-        epd_log("SD MOUNT FAIL!");
-        return;
-    }
-    Serial.println("OK");
-    epd_log("SD OK");
-    
-    // Create necessary folder structure
-    webManager.initDirectories();
-
-    initMediaDB(false);
 
     // ── Wi-Fi / Web Manager ───────────────────────────────────────
     epd_log("WIFI START");
@@ -508,11 +658,13 @@ void setup() {
 void loop() {
     uint32_t now = millis();
 
-    // Auto-apply power profile on state change
+    // Auto-apply power profile and charge pump on state change
     static AppState lastState = AppState::BOOT;
     if (appState != lastState) {
         lastState = appState;
         applyPowerSettings();
+        applyChargePumpVoltage();
+        applyWaveform();
     }
 
     // Читати Serial або Web Remote
@@ -546,11 +698,18 @@ void loop() {
         else if (raw == '2') {
             uint8_t sel = mainMenu.selectedIndex();
             if (sel == 0) { // MEDIA LIBRARY
-                appState = AppState::COVER_FLOW;
-                coverFlow.setSettings(sysSettings);
-                coverFlow.setColors(CL_FG, CL_BG, sysSettings.display.skipArtInvert);
-                coverFlow.init(mediaDB, display, sd);
-                coverFlow.drawFull();
+                // If audio is playing in background, go back to NowPlaying directly
+                if (audioPlayer.isPlaying() && currentAlbumTrackCount > 0) {
+                    appState = AppState::NOW_PLAYING;
+                    // Redraw NowPlaying with current track art
+                    switchToNowPlaying(currentAlbumTracks[currentTrackIdx], currentTrackIdx);
+                } else {
+                    appState = AppState::COVER_FLOW;
+                    coverFlow.setSettings(sysSettings);
+                    coverFlow.setColors(CL_FG, CL_BG, sysSettings.display.skipArtInvert);
+                    coverFlow.init(mediaDB, display, sd);
+                    coverFlow.drawFull();
+                }
             }
             else if (sel == 1) { /* TELEMETRY */ }
             else if (sel == 2) { /* EXTRAS */ }
@@ -579,6 +738,11 @@ void loop() {
                 sensorsScene.init(display, sysSettings, mpuManager);
                 sensorsScene.drawFull();
             }
+            if (settingsScene.wantsExplorer()) {
+                appState = AppState::FILE_EXPLORER;
+                explorerScene.init(display, sd);
+                explorerScene.drawFull();
+            }
         }
         else if (raw == '4') {
             if (settingsScene.onBack()) {
@@ -590,6 +754,9 @@ void loop() {
                 menu.setColors(CL_FG, CL_BG);
                 coverFlow.setColors(CL_FG, CL_BG, sysSettings.display.skipArtInvert);
                 nowPlaying.setColors(CL_FG, CL_BG);
+
+                // Re-apply SPI freq if it was changed
+                display.init(115200, false, sysSettings.display.spiFreqMhz, false);
 
                 appState = AppState::MAIN_MENU;
                 mainMenu.drawFull();
@@ -654,6 +821,20 @@ void loop() {
         }
         // Tick for 3D cube live updates
         sensorsScene.tick(now);
+    }
+
+    // ── FILE EXPLORER ────────────────────────────────────────────
+    else if (appState == AppState::FILE_EXPLORER) {
+        if      (raw == '1') explorerScene.onUp();
+        else if (raw == '3') explorerScene.onDown();
+        else if (raw == '2') explorerScene.onSelect();
+        else if (raw == '4') {
+            if (explorerScene.onBack()) {
+                // Return to settings
+                appState = AppState::SETTINGS;
+                settingsScene.drawFull();
+            }
+        }
     }
 
     // ── USB SYNC ────────────────────────────────────────────────
@@ -752,7 +933,8 @@ void loop() {
     // ── NOW PLAYING ───────────────────────────────────────────────
     else if (appState == AppState::NOW_PLAYING) {
         if (raw == '4') {
-            audioPlayer.stop();
+            // Only stop audio if background mode is OFF
+            if (!sysSettings.audio.backgroundMode) audioPlayer.stop();
             clearNpBgBitmap();
             appState = AppState::COVER_FLOW;
             coverFlow.drawFull();
@@ -771,6 +953,11 @@ void loop() {
         else if (raw == '2') {
             audioPlayer.togglePause();
             bool p = audioPlayer.isPlaying();
+            if (!p) pauseStartTime = millis();
+            else if (pauseStartTime > 0) {
+                totalPauseTime += (millis() - pauseStartTime);
+                pauseStartTime = 0;
+            }
             nowPlaying.setPlaying(p);
             systemStatus.setPlaying(p);
             nowPlaying.updateButtons();
@@ -783,9 +970,51 @@ void loop() {
                 return;
             }
         }
-        // Pump audio data (keep playing)
-        audioPlayer.loop();
+        // Audio data pump is handled by background task
+        // EOF and elapsed time handled globally below
 
+        nowPlaying.tick(now);
+        nowPlaying.updateHeaderIfDirty();
+    }
+
+    // ── BACKGROUND AUDIO ENGINE (runs in any state) ───────────────
+    if (audioPlayer.isPlaying() || audioPlayer.isPaused()) {
+        // Auto-advance to next track on EOF
+        if (audioPlayer.isEofSignaled()) {
+            if (currentTrackIdx < (int16_t)currentAlbumTrackCount - 1) {
+                currentTrackIdx++;
+                switchToNowPlaying(currentAlbumTracks[currentTrackIdx], currentTrackIdx);
+            } else if (currentAlbumTrackCount > 0) {
+                // Next album
+                static AlbumRecord allAlbums[32];
+                uint16_t albCount = mediaDB.getAlbumsRecords(allAlbums, 32);
+                int currentAlbIdx = -1;
+                for(int i=0; i<albCount; i++) {
+                    if (strcasecmp(allAlbums[i].album, currentAlbumTracks[0].album) == 0 &&
+                        strcasecmp(allAlbums[i].artist, currentAlbumTracks[0].artist) == 0) {
+                        currentAlbIdx = i; break;
+                    }
+                }
+                int nextAlbIdx = (currentAlbIdx + 1) % albCount;
+                currentAlbumTrackCount = mediaDB.getAlbumTracks(allAlbums[nextAlbIdx].artist, allAlbums[nextAlbIdx].album, currentAlbumTracks, 8);
+                if (currentAlbumTrackCount > 0) {
+                    currentTrackIdx = 0;
+                    switchToNowPlaying(currentAlbumTracks[0], 0);
+                }
+            }
+        }
+
+        // Track elapsed time
+        if (audioPlayer.isPlaying()) {
+            uint32_t elapsed = (now - trackStartTime - totalPauseTime) / 1000;
+            uint8_t m = elapsed / 60;
+            uint8_t s = elapsed % 60;
+            systemStatus.setTime(0, m, s);
+            nowPlaying.status.setTime(0, m, s);
+        }
+    }
+
+    if (appState == AppState::NOW_PLAYING) {
         nowPlaying.tick(now);
         nowPlaying.updateHeaderIfDirty();
     }

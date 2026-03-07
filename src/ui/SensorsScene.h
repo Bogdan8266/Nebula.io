@@ -146,10 +146,16 @@ public:
     // Called from loop() for live updates
     void tick(uint32_t now) {
         if (_cubeActive && _mpu->isConnected()) {
-            if (now - _lastCubeUpdate > 250) { // ~4fps
+            if (now - _lastCubeUpdate > 150) { // ~4fps
                 _lastCubeUpdate = now;
                 _mpu->update();
                 _drawCube();
+            }
+        } else if (_menu == SensorMenu::LIGHT_INFO || _menu == SensorMenu::ESP_INFO || _menu == SensorMenu::BATTERY_INFO || _menu == SensorMenu::MPU_LIVE) {
+            if (now - _lastAutoUpdate > 1000) { // 5s refresh
+                _lastAutoUpdate = now;
+                if (_settings->display.partialRefresh) drawPartial();
+                else drawFull();
             }
         }
     }
@@ -164,6 +170,7 @@ private:
     int _selectedIdx = 0;
     bool _cubeActive = false;
     uint32_t _lastCubeUpdate = 0;
+    uint32_t _lastAutoUpdate = 0;
 
     uint16_t _bg() { return _settings->display.inverted ? GxEPD_BLACK : GxEPD_WHITE; }
     uint16_t _fg() { return _settings->display.inverted ? GxEPD_WHITE : GxEPD_BLACK; }
@@ -175,8 +182,8 @@ private:
             case SensorMenu::MPU_MAIN:    return 3;  // Live Data, 3D Cube, Config
             case SensorMenu::MPU_LIVE:    return 7;  // Ax,Ay,Az, Gx,Gy,Gz, Temp
             case SensorMenu::MPU_CONFIG:  return 6;  // AccelRange, GyroRange, InvX, InvY, InvZ, DMP
-            case SensorMenu::ESP_INFO:    return 5;  // Freq, Heap, PSRAM, Uptime, RSSI
-            case SensorMenu::LIGHT_INFO:  return 1;
+            case SensorMenu::ESP_INFO:    return 6;  // Freq, Heap, PSRAM, Uptime, RSSI, CPU Temp
+            case SensorMenu::LIGHT_INFO:  return 3;  // ADC, Percent, Pocket
             case SensorMenu::BATTERY_INFO: return 2; // Voltage, Percent
             default: return 0;
         }
@@ -262,11 +269,12 @@ private:
                 return items[i];
             }
             case SensorMenu::ESP_INFO: {
-                const char* items[] = {"CPU MHz", "Heap", "PSRAM", "Uptime", "WiFi dBm"};
+                const char* items[] = {"CPU MHz", "Heap", "PSRAM", "Uptime", "WiFi dBm", "CPU Temp"};
                 return items[i];
             }
             case SensorMenu::LIGHT_INFO: {
-                return "ADC Val";
+                const char* items[] = {"ADC Val", "Percent", "Pocket"};
+                return items[i];
             }
             case SensorMenu::BATTERY_INFO: {
                 const char* items[] = {"Voltage", "Percent"};
@@ -330,10 +338,19 @@ private:
                         int rssi = WiFi.RSSI();
                         return (rssi == 0) ? "N/C" : String(rssi);
                     }
+                    case 5: return String(temperatureRead(), 1) + "C";
                 }
                 return "";
-            case SensorMenu::LIGHT_INFO:
-                return String(analogRead(13));
+            case SensorMenu::LIGHT_INFO: {
+                int adc = analogRead(13);
+                int pct = (adc * 100) / 4095;
+                switch (i) {
+                    case 0: return String(adc);
+                    case 1: return String(pct) + "%";
+                    case 2: return (pct < 5) ? "YES" : "NO";
+                }
+                return "";
+            }
             case SensorMenu::BATTERY_INFO:
                 // Placeholder — requires actual ADC pin for battery divider
                 switch (i) {
@@ -406,7 +423,7 @@ private:
 
         // Project each vertex
         int16_t sx[8], sy[8];
-        float scale = 50.0f;
+        float scale = 100.0f;
         float cx = 100.0f, cy = 112.0f; // center of cube area (below header)
 
         for (int i = 0; i < 8; i++) {

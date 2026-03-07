@@ -62,7 +62,7 @@ public:
         _disp->setPartialWindow(0, MN_LIST_Y, MN_W, MN_LIST_H);
         _disp->firstPage();
         do {
-            _disp->fillScreen(GxEPD_BLACK);
+            _disp->fillScreen(_bg);
             _renderList();
         } while (_disp->nextPage());
         _dirty = false;
