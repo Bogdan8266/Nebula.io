@@ -71,6 +71,15 @@ struct PowerSettings {
     uint16_t usbFreq     = 80;
 };
 
+struct WiFiSettings {
+    bool enabled        = true;   // WiFi ввімкнено/вимкнено
+    bool webEnabled     = true;   // Веб-інтерфейс увімкнено
+    bool otaEnabled     = false;  // OTA прошивка увімкнено
+    bool autoConnect    = true;   // Автоматичне підключення при старті
+    char savedSSID[32];           // Збережений SSID
+    char savedPassword[64];        // Збережений пароль
+};
+
 struct SystemSettings {
     AudioSettings   audio;
     DisplaySettings display;
@@ -78,6 +87,7 @@ struct SystemSettings {
     MPU6050Settings mpu;
     LEDSettings     led;
     PowerSettings   power;
+    WiFiSettings    wifi;
 };
 
 // Bump this whenever SystemSettings struct layout changes

@@ -8,7 +8,7 @@
 #include "../db/SettingsManager.h"
 #include "../led/LEDManager.h"
 
-enum class SettingsMenu { CATEGORIES, AUDIO, DISPLAY_PAGE, GPIO, AOD, STORAGE, USB_CFG, SENSORS, LIGHTING, RTOS };
+enum class SettingsMenu { CATEGORIES, AUDIO, DISPLAY_PAGE, GPIO, AOD, STORAGE, USB_CFG, SENSORS, LIGHTING, RTOS, WIFI };
 
 class SettingsScene {
 public:
@@ -73,6 +73,24 @@ public:
         return v;
     }
 
+    bool wantsWiFiScan() {
+        bool v = _wantsWiFiScan;
+        _wantsWiFiScan = false;
+        return v;
+    }
+
+    bool wantsWiFiInfo() {
+        bool v = _wantsWiFiInfo;
+        _wantsWiFiInfo = false;
+        return v;
+    }
+
+    bool wantsWiFiQR() {
+        bool v = _wantsWiFiQR;
+        _wantsWiFiQR = false;
+        return v;
+    }
+
     bool onSelect() {
         if (_menu == SettingsMenu::CATEGORIES) {
             if (_selectedIdx == 4) { // STORAGE
@@ -93,6 +111,12 @@ public:
             }
             if (_selectedIdx == 8) { // RTOS
                 _menu = SettingsMenu::RTOS;
+                _selectedIdx = 0;
+                drawFull();
+                return false;
+            }
+            if (_selectedIdx == 9) { // WIFI
+                _menu = SettingsMenu::WIFI;
                 _selectedIdx = 0;
                 drawFull();
                 return false;
@@ -136,6 +160,9 @@ private:
     bool _dirty = true;
     bool _wantsSensors = false;
     bool _wantsExplorer = false;
+    bool _wantsWiFiScan = false;
+    bool _wantsWiFiInfo = false;
+    bool _wantsWiFiQR = false;
 
     // Helper to identify which LED setting is at which index
     enum LEDItem { L_ENABLED, L_BRIGHTNESS, L_MODE, L_KELVIN, L_SMOOTHNESS, L_FADE_SPEED, L_AUTO_OFF, L_COLOR, L_COUNT };
@@ -158,7 +185,7 @@ private:
 
         int _getMaxItems() {
         switch(_menu) {
-            case SettingsMenu::CATEGORIES:   return 9;
+            case SettingsMenu::CATEGORIES:   return 10; // +WIFI
             case SettingsMenu::AUDIO:        return 11; // +Phase Inversion
             case SettingsMenu::DISPLAY_PAGE: return 8;  // +3x VSH1 voltage
             case SettingsMenu::USB_CFG:      return 3;
@@ -175,6 +202,12 @@ private:
             }
             case SettingsMenu::RTOS:         return 4;
             case SettingsMenu::STORAGE:      return 5;
+            case SettingsMenu::WIFI: {
+                int count = 1; // WiFi On/Off завжди є
+                if (_settings->wifi.enabled) count += 4; // Web + OTA + AutoConnect + Scan
+                if (_settings->wifi.savedSSID[0] != '\0') count += 2; // INFO + QR
+                return count;
+            }
             default: return 0;
         }
     }
@@ -241,13 +274,14 @@ private:
             case SettingsMenu::LIGHTING:     return "LIGHTING CFG";
             case SettingsMenu::RTOS:         return "POWER CFG";
             case SettingsMenu::STORAGE:      return "STORAGE INFO";
+            case SettingsMenu::WIFI:         return "WIFI CFG";
             default: return "";
         }
     }
 
     const char* _getItemLabel(int i) {
         if (_menu == SettingsMenu::CATEGORIES) {
-            const char* cats[] = {"AUDIO", "DISPLAY", "GPIO", "AOD", "STORAGE", "USB", "SENSORS", "LIGHTING", "RTOS"};
+            const char* cats[] = {"AUDIO", "DISPLAY", "GPIO", "AOD", "STORAGE", "USB", "SENSORS", "LIGHTING", "RTOS", "WIFI"};
             return cats[i];
         } else if (_menu == SettingsMenu::AUDIO) {
             const char* audio[] = {"Volume", "Sample", "Chan", "Bits", "BufS", "BufC", "Prio", "Core", "Bal", "Phase", "BG Mode"};
@@ -276,6 +310,23 @@ private:
         } else if (_menu == SettingsMenu::STORAGE) {
             const char* str[] = {"Total", "Used", "Free", "Music", "BROWSE FILES"};
             return str[i];
+        } else if (_menu == SettingsMenu::WIFI) {
+            // Index 0 is always WiFi toggle
+            if (i == 0) return "WiFi";
+            int idx = i - 1;
+            // Optional block: Web/OTA/AutoConnect/SCAN (only when enabled)
+            if (_settings->wifi.enabled) {
+                if (idx == 0) return "Web UI";
+                if (idx == 1) return "OTA";
+                if (idx == 2) return "AutoConnect";
+                if (idx == 3) return "SCAN";
+                idx -= 4;
+            }
+            // INFO and QR (only when savedSSID exists)
+            if (_settings->wifi.savedSSID[0] != '\0') {
+                if (idx == 0) return "INFO";
+                if (idx == 1) return "QR";
+            }
         }
         return "";
     }
@@ -350,6 +401,13 @@ private:
                 case 3: return String(mediaDB.trackCount());
                 case 4: return "";
             }
+        } else if (_menu == SettingsMenu::WIFI) {
+            const char* lbl = _getItemLabel(i);
+            if      (strcmp(lbl, "WiFi")        == 0) return _settings->wifi.enabled     ? "ON"  : "OFF";
+            else if (strcmp(lbl, "Web UI")      == 0) return _settings->wifi.webEnabled  ? "ON"  : "OFF";
+            else if (strcmp(lbl, "OTA")         == 0) return _settings->wifi.otaEnabled  ? "ON"  : "OFF";
+            else if (strcmp(lbl, "AutoConnect") == 0) return _settings->wifi.autoConnect ? "YES" : "NO";
+            return ""; // SCAN, INFO, QR have no value display
         }
         return "";
     }
@@ -498,6 +556,19 @@ private:
             }
             extern void applyPowerSettings();
             applyPowerSettings();
+        } else if (_menu == SettingsMenu::WIFI) {
+            // Use label-based dispatch so indices stay correct regardless of
+            // which optional items (Web/OTA/etc.) are currently visible.
+            const char* lbl = _getItemLabel(_selectedIdx);
+            if      (strcmp(lbl, "WiFi")        == 0) _settings->wifi.enabled     = !_settings->wifi.enabled;
+            else if (strcmp(lbl, "Web UI")      == 0) _settings->wifi.webEnabled  = !_settings->wifi.webEnabled;
+            else if (strcmp(lbl, "OTA")         == 0) _settings->wifi.otaEnabled  = !_settings->wifi.otaEnabled;
+            else if (strcmp(lbl, "AutoConnect") == 0) _settings->wifi.autoConnect = !_settings->wifi.autoConnect;
+            else if (strcmp(lbl, "SCAN")        == 0) _wantsWiFiScan = true;
+            else if (strcmp(lbl, "INFO")        == 0) _wantsWiFiInfo = true;
+            else if (strcmp(lbl, "QR")          == 0) _wantsWiFiQR   = true;
+            // Перемалювати меню щоб оновити видимість елементів
+            drawFull();
         }
     }
 };

@@ -15,6 +15,7 @@
 #include <SPI.h>
 #include <WiFi.h>
 #include <WebServer.h>
+#include <ArduinoOTA.h>
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <Fonts/FreeMono9pt7b.h>
@@ -40,6 +41,8 @@
 #include "sensors/MPU6050Manager.h"
 #include "led/LEDManager.h"
 #include "ui/FileExplorerScene.h"
+#include "wifi/WiFiScanner.h"
+#include "ui/WiFiScene.h"
 
 // ── Wi-Fi ────────────────────────────────────────────────────────
 #define WIFI_SSID "Xiaomi_14F8"
@@ -82,10 +85,12 @@ MainMenuScene<Display, fs::FS> mainMenu;
 StatusWidget          systemStatus;
 NowPlaying<Display>   nowPlaying(display);
 
-enum class AppState { BOOT, MAIN_MENU, COVER_FLOW, SONG_LIST, NOW_PLAYING, SETTINGS, USB_SYNC, SENSORS, FILE_EXPLORER };
+enum class AppState { BOOT, MAIN_MENU, COVER_FLOW, SONG_LIST, NOW_PLAYING, SETTINGS, USB_SYNC, SENSORS, FILE_EXPLORER, WIFI_SCANNER };
 AppState appState = AppState::BOOT;
 NebulaPlayer audioPlayer;
 WebManager   webManager(sd);
+WiFiScanner  wifiScanner;
+WiFiScene    wifiScene;
 
 // Dynamic coloring based on settings
 #define CL_BG (sysSettings.display.inverted ? GxEPD_BLACK : GxEPD_WHITE)
@@ -635,8 +640,34 @@ void setup() {
     }
 
     // ── Wi-Fi / Web Manager ───────────────────────────────────────
-    epd_log("WIFI START");
-    webManager.begin(WIFI_SSID, WIFI_PASS);
+    // WiFi старт - тільки якщо увімкнено в налаштуваннях
+    if (sysSettings.wifi.enabled) {
+        epd_log("WIFI START");
+        webManager.begin(WIFI_SSID, WIFI_PASS);
+        // Відразу застосувати налаштування web/ota
+        webManager.setWebEnabled(sysSettings.wifi.webEnabled);
+        webManager.setOTAEnabled(sysSettings.wifi.otaEnabled);
+    } else {
+        epd_log("WIFI OFF");
+        // WiFi вимкнено - не запускаємо
+    }
+
+    // ── WiFi Scanner Scene ─────────────────────────────────────────
+    wifiScene.init(display, sd, sysSettings, wifiScanner);
+
+    // ── Auto-connect WiFi якщо увімкнено ─────────────────────────
+    if (sysSettings.wifi.enabled && sysSettings.wifi.autoConnect && 
+        sysSettings.wifi.savedSSID[0] != '\0') {
+        epd_log("WIFI AUTO...");
+        if (wifiScanner.connect(sysSettings.wifi.savedSSID, sysSettings.wifi.savedPassword)) {
+            epd_log("WIFI OK!");
+            char ip[32];
+            snprintf(ip, sizeof(ip), "IP: %s", wifiScanner.getIP().c_str());
+            epd_log(ip);
+        } else {
+            epd_log("WIFI FAIL");
+        }
+    }
 
     // Перейти в головне меню
     appState = AppState::MAIN_MENU;
@@ -731,6 +762,24 @@ void loop() {
         else if (raw == '3') settingsScene.onDown();
         else if (raw == '2') {
             settingsScene.onSelect();
+            // Check if user selected WiFi Scanner
+            if (settingsScene.wantsWiFiScan()) {
+                appState = AppState::WIFI_SCANNER;
+                wifiScene.init(display, sd, sysSettings, wifiScanner);
+                wifiScene.startScan();
+            }
+            // Check if user selected WiFi Info
+            if (settingsScene.wantsWiFiInfo()) {
+                appState = AppState::WIFI_SCANNER;
+                wifiScene.init(display, sd, sysSettings, wifiScanner);
+                wifiScene.showInfo();
+            }
+            // Check if user selected WiFi QR
+            if (settingsScene.wantsWiFiQR()) {
+                appState = AppState::WIFI_SCANNER;
+                wifiScene.init(display, sd, sysSettings, wifiScanner);
+                wifiScene.showQRCode();
+            }
             // Check if user selected SENSORS
             if (settingsScene.wantsSensors()) {
                 appState = AppState::SENSORS;
@@ -749,6 +798,13 @@ void loop() {
                 // Apply changes to all components immediately
                 audioPlayer.applySettings(sysSettings);
                 mpuManager.applySettings(sysSettings.mpu);
+                
+                // Apply WiFi changes
+                webManager.setWiFiEnabled(sysSettings.wifi.enabled);
+                if (sysSettings.wifi.enabled) {
+                    webManager.setWebEnabled(sysSettings.wifi.webEnabled);
+                    webManager.setOTAEnabled(sysSettings.wifi.otaEnabled);
+                }
                 
                 mainMenu.setColors(CL_FG, CL_BG);
                 menu.setColors(CL_FG, CL_BG);
@@ -834,6 +890,48 @@ void loop() {
                 appState = AppState::SETTINGS;
                 settingsScene.drawFull();
             }
+        }
+    }
+
+    // ── WIFI SCANNER ────────────────────────────────────────────
+    else if (appState == AppState::WIFI_SCANNER) {
+        if (wifiScene.isInScanMode()) {
+            // SCAN mode: 1=down, 3=up, 2=select, 4=back, 5=info
+            if      (raw == '1') wifiScene.onDown();
+            else if (raw == '3') wifiScene.onUp();
+            else if (raw == '2') wifiScene.onSelect();
+            else if (raw == '4') {
+                if (wifiScene.onBack()) {
+                    appState = AppState::SETTINGS;
+                    settingsScene.drawFull();
+                }
+            }
+            else if (raw == '5') wifiScene.showInfo();
+        } else {
+            // CONNECTED/PASSWORD/INFO/CONNECTING/FAILED mode: 
+            // 1=down, 2=select, 3=input, 4=back, 5=connect, 6=delete
+            if      (raw == '1') wifiScene.onDown();
+            else if (raw == '2') {
+                wifiScene.onSelect();
+                // Redraw after mode change
+                if (wifiScene.isInScanMode()) {
+                    wifiScene.drawFull();
+                }
+            }
+            else if (raw == '3') wifiScene.onInput();
+            else if (raw == '4') {
+                if (wifiScene.onBack()) {
+                    appState = AppState::SETTINGS;
+                    settingsScene.drawFull();
+                }
+            }
+            else if (raw == '5') wifiScene.startConnect();
+            else if (raw == '6') wifiScene.onDelete();
+        }
+        // Tick для оновлення статусу підключення та анімації
+        if (wifiScene.tick()) {
+            // State changed (CONNECTING -> CONNECTED/FAILED)
+            wifiScene.drawFull();
         }
     }
 
