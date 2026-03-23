@@ -17,9 +17,10 @@ struct ExplorerFileEntry {
 
 class FileExplorerScene {
 public:
-    void init(GxEPD2_BW<GxEPD2_154_D67, 200>& disp, fs::FS& sd) {
+    void init(GxEPD2_BW<GxEPD2_154_D67, 200>& disp, fs::FS& sd, SystemSettings* settings) {
         _disp = &disp;
         _sd = &sd;
+        _settings = settings;
         _currentPath = "/";
         _selectedIdx = 0;
         _scrollOffset = 0;
@@ -27,11 +28,36 @@ public:
     }
 
     void drawFull() {
+        if (_settings && _settings->display.softwareFullRefresh) {
+            _disp->setPartialWindow(0, 0, 200, 200);
+            _disp->firstPage();
+            do {
+                _disp->fillScreen(GxEPD_WHITE);
+                _render(GxEPD_WHITE, GxEPD_BLACK);
+            } while (_disp->nextPage());
+
+            uint8_t cycles = _settings->display.softwareRefreshCycles;
+            for (uint8_t i = 0; i < cycles; i++) {
+                _disp->firstPage();
+                do {
+                    _disp->fillScreen(GxEPD_BLACK);
+                    _render(GxEPD_BLACK, GxEPD_WHITE);
+                } while (_disp->nextPage());
+                
+                _disp->firstPage();
+                do {
+                    _disp->fillScreen(GxEPD_WHITE);
+                    _render(GxEPD_WHITE, GxEPD_BLACK);
+                } while (_disp->nextPage());
+            }
+            return;
+        }
+
         _disp->setFullWindow();
         _disp->firstPage();
         do {
             _disp->fillScreen(GxEPD_WHITE); // Explorer usually looks better in Light mode or keep consistent
-            _render();
+            _render(GxEPD_WHITE, GxEPD_BLACK);
         } while (_disp->nextPage());
     }
 
@@ -40,7 +66,7 @@ public:
         _disp->firstPage();
         do {
             _disp->fillScreen(GxEPD_WHITE);
-            _render();
+            _render(GxEPD_WHITE, GxEPD_BLACK);
         } while (_disp->nextPage());
     }
 
@@ -97,6 +123,7 @@ public:
 private:
     GxEPD2_BW<GxEPD2_154_D67, 200>* _disp;
     fs::FS* _sd;
+    SystemSettings* _settings;
     String _currentPath;
     std::vector<ExplorerFileEntry> _files;
     int _selectedIdx = 0;
@@ -139,27 +166,27 @@ private:
         }
     }
 
-    void _render() {
+    void _render(uint16_t bg, uint16_t fg) {
         // Title bar
-        _disp->fillRect(0, 0, 200, 25, GxEPD_BLACK);
+        _disp->fillRect(0, 0, 200, 25, fg);
         _disp->setFont(&FreeMonoBold9pt7b);
-        _disp->setTextColor(GxEPD_WHITE);
+        _disp->setTextColor(bg);
         _disp->setCursor(5, 18);
         String title = _currentPath;
         if (title.length() > 18) title = "..." + title.substring(title.length() - 15);
         _disp->print(title);
 
-        _disp->setTextColor(GxEPD_BLACK);
+        _disp->setTextColor(fg);
         int y = 45;
         int itemsToShow = 7;
         for (int i = _scrollOffset; i < (int)_files.size() && i < _scrollOffset + itemsToShow; i++) {
             ExplorerFileEntry& fe = _files[i];
             
             if (i == _selectedIdx) {
-                _disp->fillRect(0, y - 14, 200, 18, GxEPD_BLACK);
-                _disp->setTextColor(GxEPD_WHITE);
+                _disp->fillRect(0, y - 14, 200, 18, fg);
+                _disp->setTextColor(bg);
             } else {
-                _disp->setTextColor(GxEPD_BLACK);
+                _disp->setTextColor(fg);
             }
 
             _disp->setCursor(5, y);
@@ -179,8 +206,8 @@ private:
         }
 
         // Scroll indicators
-        if (_scrollOffset > 0) _disp->fillTriangle(190, 32, 186, 36, 194, 36, GxEPD_BLACK);
-        if (_scrollOffset + itemsToShow < (int)_files.size()) _disp->fillTriangle(190, 195, 186, 191, 194, 191, GxEPD_BLACK);
+        if (_scrollOffset > 0) _disp->fillTriangle(190, 32, 186, 36, 194, 36, fg);
+        if (_scrollOffset + itemsToShow < (int)_files.size()) _disp->fillTriangle(190, 195, 186, 191, 194, 191, fg);
     }
 
     String _formatSize(uint32_t bytes) {

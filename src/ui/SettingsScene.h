@@ -8,7 +8,7 @@
 #include "../db/SettingsManager.h"
 #include "../led/LEDManager.h"
 
-enum class SettingsMenu { CATEGORIES, AUDIO, DISPLAY_PAGE, GPIO, AOD, STORAGE, USB_CFG, SENSORS, LIGHTING, RTOS, WIFI };
+enum class SettingsMenu { CATEGORIES, AUDIO, DISPLAY_PAGE, GPIO, AOD, STORAGE, USB_CFG, SENSORS, LIGHTING, RTOS, WIFI, BLUETOOTH };
 
 class SettingsScene {
 public:
@@ -22,6 +22,34 @@ public:
     }
 
     void drawFull() {
+        if (_settings->display.softwareFullRefresh) {
+            _disp->setPartialWindow(0, 0, 200, 200);
+            _disp->firstPage();
+            do {
+                _disp->fillScreen(_settings->display.inverted ? GxEPD_BLACK : GxEPD_WHITE);
+                _renderMenu();
+            } while (_disp->nextPage());
+
+            uint8_t cycles = _settings->display.softwareRefreshCycles;
+            for (uint8_t i = 0; i < cycles; i++) {
+                _settings->display.inverted = !_settings->display.inverted; // Swap
+                _disp->firstPage();
+                do {
+                    _disp->fillScreen(_settings->display.inverted ? GxEPD_BLACK : GxEPD_WHITE);
+                    _renderMenu();
+                } while (_disp->nextPage());
+                
+                _settings->display.inverted = !_settings->display.inverted; // Swap back
+                _disp->firstPage();
+                do {
+                    _disp->fillScreen(_settings->display.inverted ? GxEPD_BLACK : GxEPD_WHITE);
+                    _renderMenu();
+                } while (_disp->nextPage());
+            }
+            _dirty = false;
+            return;
+        }
+
         _disp->setFullWindow();
         _disp->firstPage();
         do {
@@ -121,6 +149,12 @@ public:
                 drawFull();
                 return false;
             }
+            if (_selectedIdx == 10) { // BLUETOOTH
+                _menu = SettingsMenu::BLUETOOTH;
+                _selectedIdx = 0;
+                drawFull();
+                return false;
+            }
             _menu = (SettingsMenu)(_selectedIdx + 1);
             _selectedIdx = 0;
             drawFull();
@@ -185,9 +219,9 @@ private:
 
         int _getMaxItems() {
         switch(_menu) {
-            case SettingsMenu::CATEGORIES:   return 10; // +WIFI
+            case SettingsMenu::CATEGORIES:   return 11; // +WIFI, +BLUETOOTH
             case SettingsMenu::AUDIO:        return 11; // +Phase Inversion
-            case SettingsMenu::DISPLAY_PAGE: return 8;  // +3x VSH1 voltage
+            case SettingsMenu::DISPLAY_PAGE: return 10; // + SW Full, SW F.Cyc
             case SettingsMenu::USB_CFG:      return 3;
             case SettingsMenu::LIGHTING: {
                 int count = 0;
@@ -208,6 +242,7 @@ private:
                 if (_settings->wifi.savedSSID[0] != '\0') count += 2; // INFO + QR
                 return count;
             }
+            case SettingsMenu::BLUETOOTH:    return 1;
             default: return 0;
         }
     }
@@ -275,19 +310,20 @@ private:
             case SettingsMenu::RTOS:         return "POWER CFG";
             case SettingsMenu::STORAGE:      return "STORAGE INFO";
             case SettingsMenu::WIFI:         return "WIFI CFG";
+            case SettingsMenu::BLUETOOTH:    return "BLUETOOTH CFG";
             default: return "";
         }
     }
 
     const char* _getItemLabel(int i) {
         if (_menu == SettingsMenu::CATEGORIES) {
-            const char* cats[] = {"AUDIO", "DISPLAY", "GPIO", "AOD", "STORAGE", "USB", "SENSORS", "LIGHTING", "RTOS", "WIFI"};
+            const char* cats[] = {"AUDIO", "DISPLAY", "GPIO", "AOD", "STORAGE", "USB", "SENSORS", "LIGHTING", "RTOS", "WIFI", "BLUETOOTH"};
             return cats[i];
         } else if (_menu == SettingsMenu::AUDIO) {
             const char* audio[] = {"Volume", "Sample", "Chan", "Bits", "BufS", "BufC", "Prio", "Core", "Bal", "Phase", "BG Mode"};
             return audio[i];
         } else if (_menu == SettingsMenu::DISPLAY_PAGE) {
-            const char* disp[] = {"Inverted", "Skip Art", "Partial", "CF Full", "SPI MHz", "VSH1 Menu", "VSH1 Media", "VSH1 AOD"};
+            const char* disp[] = {"Inverted", "Skip Art", "Partial", "CF Full", "SPI MHz", "VSH1 Menu", "VSH1 Media", "VSH1 AOD", "SW Full", "SW F.Cyc"};
             return disp[i];
         } else if (_menu == SettingsMenu::USB_CFG) {
             return (i==0)?"Mode":(i==1)?"Chunk":"Freq";
@@ -327,6 +363,8 @@ private:
                 if (idx == 0) return "INFO";
                 if (idx == 1) return "QR";
             }
+        } else if (_menu == SettingsMenu::BLUETOOTH) {
+            return "Receiver Mode";
         }
         return "";
     }
@@ -359,6 +397,8 @@ private:
                 case 5: return String(_settings->display.vsh1Menu / 10.0, 1) + "V";
                 case 6: return String(_settings->display.vsh1Media / 10.0, 1) + "V";
                 case 7: return String(_settings->display.vsh1Aod / 10.0, 1) + "V";
+                case 8: return _settings->display.softwareFullRefresh ? "ON" : "OFF";
+                case 9: return String(_settings->display.softwareRefreshCycles);
             }
         } else if (_menu == SettingsMenu::USB_CFG) {
             if (i==0) return (_settings->usb.mode==0)?"SERIAL":(_settings->usb.mode==1)?"STORAGE":"FLASH";
@@ -408,6 +448,8 @@ private:
             else if (strcmp(lbl, "OTA")         == 0) return _settings->wifi.otaEnabled  ? "ON"  : "OFF";
             else if (strcmp(lbl, "AutoConnect") == 0) return _settings->wifi.autoConnect ? "YES" : "NO";
             return ""; // SCAN, INFO, QR have no value display
+        } else if (_menu == SettingsMenu::BLUETOOTH) {
+            return _settings->bluetooth.receiverMode ? "ON" : "OFF";
         }
         return "";
     }
@@ -477,6 +519,12 @@ private:
                     if (v > 170) v = 24;
                     extern void applyChargePumpVoltage();
                     applyChargePumpVoltage();
+                    break;
+                }
+                case 8: _settings->display.softwareFullRefresh = !_settings->display.softwareFullRefresh; break;
+                case 9: {
+                    _settings->display.softwareRefreshCycles++;
+                    if (_settings->display.softwareRefreshCycles > 5) _settings->display.softwareRefreshCycles = 1;
                     break;
                 }
             }
@@ -569,6 +617,10 @@ private:
             else if (strcmp(lbl, "QR")          == 0) _wantsWiFiQR   = true;
             // Перемалювати меню щоб оновити видимість елементів
             drawFull();
+        } else if (_menu == SettingsMenu::BLUETOOTH) {
+            if (_selectedIdx == 0) {
+                _settings->bluetooth.receiverMode = !_settings->bluetooth.receiverMode;
+            }
         }
     }
 };

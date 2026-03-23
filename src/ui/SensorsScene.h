@@ -33,6 +33,33 @@ public:
     }
 
     void drawFull() {
+        if (_settings->display.softwareFullRefresh) {
+            _disp->setPartialWindow(0, 0, 200, 200);
+            _disp->firstPage();
+            do {
+                _disp->fillScreen(_bg());
+                _renderCurrentView();
+            } while (_disp->nextPage());
+
+            uint8_t cycles = _settings->display.softwareRefreshCycles;
+            for (uint8_t i = 0; i < cycles; i++) {
+                _settings->display.inverted = !_settings->display.inverted; // Swap
+                _disp->firstPage();
+                do {
+                    _disp->fillScreen(_bg());
+                    _renderCurrentView();
+                } while (_disp->nextPage());
+                
+                _settings->display.inverted = !_settings->display.inverted; // Swap back
+                _disp->firstPage();
+                do {
+                    _disp->fillScreen(_bg());
+                    _renderCurrentView();
+                } while (_disp->nextPage());
+            }
+            return;
+        }
+
         _disp->setFullWindow();
         _disp->firstPage();
         do {

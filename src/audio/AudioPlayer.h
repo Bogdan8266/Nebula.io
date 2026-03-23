@@ -25,6 +25,7 @@ public:
     }
 
     bool begin(fs::FS& sd, const SystemSettings& settings) {
+        if (_isInitialized) end();
         _sd = &sd;
         _settings = &settings;
         
@@ -50,20 +51,33 @@ public:
         _enc.setDecoder(&_foxen);
         _enc.setOutput(&_volume);
         
-        // Створення задачі згідно з налаштуваннями
-        xTaskCreatePinnedToCore(
-            _audioTask,
-            "AudioTask",
-            4096,
-            this,
-            settings.audio.taskPriority,
-            &_taskHandle,
-            settings.audio.coreID
-        );
-
-        Serial.printf("[AUD] Background Engine OK (Core %d, Prio %d)\n", 
-                      settings.audio.coreID, settings.audio.taskPriority);
+        // Створення задачі тільки якщо її ще немає
+        if (_taskHandle == nullptr) {
+            xTaskCreatePinnedToCore(
+                _audioTask,
+                "AudioTask",
+                4096,
+                this,
+                settings.audio.taskPriority,
+                &_taskHandle,
+                settings.audio.coreID
+            );
+            Serial.printf("[AUD] Background Engine OK (Core %d, Prio %d)\n", 
+                          settings.audio.coreID, settings.audio.taskPriority);
+        } else {
+            Serial.println("[AUD] Engine Re-initialized");
+        }
+        _isInitialized = true;
         return true;
+    }
+
+    void end() {
+        if (!_isInitialized) return;
+        Serial.println("[AUD] Releasing I2S...");
+        stop();
+        _volume.end();
+        _i2s.end();
+        _isInitialized = false;
     }
 
     void applySettings(const SystemSettings& settings) {
@@ -144,6 +158,7 @@ private:
     void                 (*_eofCb)() = nullptr;
     TaskHandle_t         _taskHandle = nullptr;
     SemaphoreHandle_t    _mutex;
+    bool                 _isInitialized = false;
 
     static void _audioTask(void* pvParameters) {
         NebulaPlayer* player = (NebulaPlayer*)pvParameters;

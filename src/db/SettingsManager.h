@@ -23,6 +23,8 @@ struct DisplaySettings {
     bool     skipArtInvert  = true;
     bool     partialRefresh = true;
     bool     cfFullRefresh  = false;
+    bool     softwareFullRefresh = false;
+    uint8_t  softwareRefreshCycles = 1; // 1 to 5 cycles
     uint8_t  spiFreqMhz    = 4; // SPI clock: 2, 4, 8, 10, 20
     
     // Charge Pump Voltage Control (VSH1 in 0.1V units, range 24-170 = 2.4V-17V)
@@ -80,18 +82,23 @@ struct WiFiSettings {
     char savedPassword[64];        // Збережений пароль
 };
 
+struct BluetoothSettings {
+    bool receiverMode = false;
+};
+
 struct SystemSettings {
-    AudioSettings   audio;
-    DisplaySettings display;
-    UsbSettings     usb;
-    MPU6050Settings mpu;
-    LEDSettings     led;
-    PowerSettings   power;
-    WiFiSettings    wifi;
+    AudioSettings     audio;
+    DisplaySettings   display;
+    UsbSettings       usb;
+    MPU6050Settings   mpu;
+    LEDSettings       led;
+    PowerSettings     power;
+    WiFiSettings      wifi;
+    BluetoothSettings bluetooth;
 };
 
 // Bump this whenever SystemSettings struct layout changes
-static constexpr uint32_t SETTINGS_VERSION = 5;
+static constexpr uint32_t SETTINGS_VERSION = 7; // Bumped for software full refresh
 
 struct SettingsFileHeader {
     uint32_t magic;   // 0xNEBULA01

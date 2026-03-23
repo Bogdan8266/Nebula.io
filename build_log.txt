@@ -1,0 +1,237 @@
+Processing esp32s3 (platform: espressif32; board: esp32-s3-devkitc-1; framework: arduino)
+--------------------------------------------------------------------------------
+Tool Manager: Could not parse manifest -> Expecting value: line 1 column 1 (char 0)
+Tool Manager: Could not parse manifest -> Expecting value: line 1 column 1 (char 0)
+Tool Manager: Could not parse manifest -> Expecting value: line 1 column 1 (char 0)
+Tool Manager: Could not parse manifest -> Expecting value: line 1 column 1 (char 0)
+Tool Manager: Could not parse manifest -> Expecting value: line 1 column 1 (char 0)
+Tool Manager: Could not parse manifest -> Expecting value: line 1 column 1 (char 0)
+Tool Manager: Could not parse manifest -> Expecting value: line 1 column 1 (char 0)
+Tool Manager: Could not parse manifest -> Expecting value: line 1 column 1 (char 0)
+Tool Manager: Could not parse manifest -> Expecting value: line 1 column 1 (char 0)
+Tool Manager: Could not parse manifest -> Expecting value: line 1 column 1 (char 0)
+Tool Manager: Could not parse manifest -> Expecting value: line 1 column 1 (char 0)
+Tool Manager: Could not parse manifest -> Expecting value: line 1 column 1 (char 0)
+Verbose mode can be enabled via `-v, --verbose` option
+Tool Manager: Could not parse manifest -> Expecting value: line 1 column 1 (char 0)
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/esp32-s3-devkitc-1.html
+PLATFORM: Espressif 32 (6.12.0) > Espressif ESP32-S3-DevKitC-1-N8 (8 MB QD, No PSRAM)
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 16MB Flash
+DEBUG: Current (esp-builtin) On-board (esp-builtin) External (cmsis-dap, esp-bridge, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES: 
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b 
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0) 
+ - tool-openocd-esp32 @ 2.1100.20220706 (11.0) 
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5 
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 45 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- Adafruit BusIO @ 1.17.4
+|-- GxEPD2 @ 1.6.7
+|-- Adafruit GFX Library @ 1.12.5
+|-- U8g2_for_Adafruit_GFX @ 1.8.0
+|-- JPEGDEC @ 1.8.4
+|-- audio-tools @ 1.2.2+sha.b520706
+|-- libfoxenflac @ 1.0.0+sha.4cfa2f5
+|-- ESP32-A2DP @ 1.8.9+sha.80d1041
+|-- MPU6050 @ 1.4.4
+|-- FastLED @ 3.10.3
+|-- QRCode @ 0.0.1
+|-- ArduinoOTA @ 2.0.0
+|-- FS @ 2.0.0
+|-- SD_MMC @ 2.0.0
+|-- SPI @ 2.0.0
+|-- WebServer @ 2.0.0
+|-- WiFi @ 2.0.0
+|-- Wire @ 2.0.0
+Building in release mode
+Compiling .pio/build/esp32s3/src/main.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+In file included from .pio/libdeps/esp32s3/ESP32-A2DP/src/BluetoothA2DPSink.h:17,
+                 from src/bluetooth/BluetoothManager.h:4,
+                 from src/main.cpp:37:
+.pio/libdeps/esp32s3/ESP32-A2DP/src/BluetoothA2DPCommon.h:33:4: error: #error "Please read the ESP32-A2DP Wiki about the supported Platforms!"
+ #  error "Please read the ESP32-A2DP Wiki about the supported Platforms!"
+    ^~~~~
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd3c/GxEPD2_583c.cpp.o
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd3c/GxEPD2_583c_Z83.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd3c/GxEPD2_750c.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd3c/GxEPD2_750c_GDEW075Z08.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd3c/GxEPD2_750c_Z08.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd3c/GxEPD2_750c_Z90.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd4c/GxEPD2_1160c_GDEY116F51.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd4c/GxEPD2_154c_GDEM0154F51H.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd4c/GxEPD2_213c_GDEY0213F51.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd4c/GxEPD2_266c_GDEY0266F51H.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd4c/GxEPD2_290c_GDEY029F51H.cpp.o
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd4c/GxEPD2_300c.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd4c/GxEPD2_350c_GDEM035F51.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd4c/GxEPD2_397c_GDEM0397F81.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd4c/GxEPD2_420c_GDEY0420F51.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd4c/GxEPD2_437c.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd4c/GxEPD2_579c_GDEY0579F51.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd4c/GxEPD2_750c_GDEM075F52.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd7c/GxEPD2_565c.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd7c/GxEPD2_565c_GDEP0565D90.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd7c/GxEPD2_730c_ACeP_730.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd7c/GxEPD2_730c_GDEP073E01.cpp.o
+Compiling .pio/build/esp32s3/lib670/GxEPD2/epd7c/GxEPD2_730c_GDEY073D46.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdem/GxEPD2_1020_GDEM102T91.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdem/GxEPD2_1085_GDEM1085T51.cpp.o
+In file included from src/main.cpp:37:
+src/bluetooth/BluetoothManager.h:68:5: error: 'BluetoothA2DPSink' does not name a type; did you mean 'BluetoothSettings'?
+     BluetoothA2DPSink _a2dp_sink;
+     ^~~~~~~~~~~~~~~~~
+     BluetoothSettings
+src/bluetooth/BluetoothManager.h: In member function 'void BluetoothManager::start()':
+src/bluetooth/BluetoothManager.h:37:9: error: '_a2dp_sink' was not declared in this scope
+         _a2dp_sink.set_pin_config(pin_config);
+         ^~~~~~~~~~
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdem/GxEPD2_1330_GDEM133T91.cpp.o
+src/bluetooth/BluetoothManager.h: In member function 'void BluetoothManager::stop()':
+src/bluetooth/BluetoothManager.h:52:9: error: '_a2dp_sink' was not declared in this scope
+         _a2dp_sink.end();
+         ^~~~~~~~~~
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+src/bluetooth/BluetoothManager.h: In member function 'void BluetoothManager::setVolume(float)':
+src/bluetooth/BluetoothManager.h:62:13: error: '_a2dp_sink' was not declared in this scope
+             _a2dp_sink.set_volume(v * 127);
+             ^~~~~~~~~~
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdem/GxEPD2_397_GDEM0397T81.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdem3c/GxEPD2_1330c_GDEM133Z91.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdeq/GxEPD2_310_GDEQ031T10.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdeq/GxEPD2_426_GDEQ0426T82.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdeq/GxEPD2_583_GDEQ0583T31.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdeq3c/GxEPD2_583c_GDEQ0583Z31.cpp.o
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdey/GxEPD2_154_GDEY0154D67.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdey/GxEPD2_213_GDEY0213B74.cpp.o
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdey/GxEPD2_266_GDEY0266T90.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdey/GxEPD2_270_GDEY027T91.cpp.o
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdey/GxEPD2_290_GDEY029T71H.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdey/GxEPD2_290_GDEY029T94.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdey/GxEPD2_370_GDEY037T03.cpp.o
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdey/GxEPD2_420_GDEY042T81.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdey/GxEPD2_579_GDEY0579T93.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdey/GxEPD2_750_GDEY075T7.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdey3c/GxEPD2_1160c_GDEY116Z91.cpp.o
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdey3c/GxEPD2_420c_GDEY042Z98.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdey3c/GxEPD2_579c_GDEY0579Z93.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/gdey3c/GxEPD2_750c_GDEY075Z08.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/it8951/GxEPD2_it103_1872x1404.cpp.o
+Compiling .pio/build/esp32s3/lib670/GxEPD2/it8951/GxEPD2_it60.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/it8951/GxEPD2_it60_1448x1072.cpp.o
+Compiling .pio/build/esp32s3/lib670/GxEPD2/it8951/GxEPD2_it78_1872x1404.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/other/GxEPD2_420_GYE042A87.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib670/GxEPD2/other/GxEPD2_420_SE0420NQ04.cpp.o
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+Compiling .pio/build/esp32s3/lib550/U8g2_for_Adafruit_GFX/U8g2_for_Adafruit_GFX.cpp.o
+*** [.pio/build/esp32s3/src/main.cpp.o] Error 1
+<command-line>: warning: "ARDUINO_USB_MODE" redefined
+<command-line>: note: this is the location of the previous definition
+========================== [FAILED] Took 8.62 seconds ==========================

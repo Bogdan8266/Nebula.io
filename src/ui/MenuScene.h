@@ -13,6 +13,7 @@
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <Fonts/FreeMono9pt7b.h>
 #include "../db/MediaDB.h"
+#include "../db/SettingsManager.h"
 #include "StatusWidget.h"
 
 // Layout constants
@@ -41,7 +42,29 @@ public:
         }
     }
 
+    void setSettings(const SystemSettings& settings) { _settings = &settings; }
+
     void drawFull() {
+        if (_settings && _settings->display.softwareFullRefresh) {
+            _disp->setPartialWindow(0, 0, 200, 200);
+            
+            _disp->firstPage();
+            do { _renderAll(); } while (_disp->nextPage());
+
+            uint8_t cycles = _settings->display.softwareRefreshCycles;
+            for (uint8_t i = 0; i < cycles; i++) {
+                uint16_t tmp = _fg; _fg = _bg; _bg = tmp;
+                _disp->firstPage();
+                do { _renderAll(); } while (_disp->nextPage());
+                
+                tmp = _fg; _fg = _bg; _bg = tmp;
+                _disp->firstPage();
+                do { _renderAll(); } while (_disp->nextPage());
+            }
+            _dirty = false;
+            return;
+        }
+
         _disp->setFullWindow();
         _disp->firstPage();
         do { _renderAll(); } while (_disp->nextPage());
@@ -119,6 +142,7 @@ private:
     Display*   _disp    = nullptr;
     MediaDB*   _db      = nullptr;
     FS_T*      _sd      = nullptr;
+    const SystemSettings* _settings = nullptr;
     MenuState  _state   = MenuState::ARTISTS;
     bool       _dirty   = false;
     uint16_t   _fg      = GxEPD_WHITE;

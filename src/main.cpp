@@ -35,6 +35,7 @@
 #include "web/UsbMscManager.h"
 #include "audio/AudioPlayer.h"
 
+
 #include "ui/SettingsScene.h"
 #include "ui/SensorsScene.h"
 #include "db/SettingsManager.h"
@@ -463,7 +464,11 @@ void switchToNowPlaying(const TrackRecord& track, int16_t trackIdx = -1) {
         } while (display.nextPage());
     }
 
-    audioPlayer.play(track.path);
+    if (!sysSettings.bluetooth.receiverMode) {
+        audioPlayer.play(track.path);
+    } else {
+        Serial.println("[APP] Ignored Play request because BT Receiver mode is active.");
+    }
     trackStartTime = millis();
     totalPauseTime = 0;
     pauseStartTime = 0;
@@ -621,6 +626,7 @@ void setup() {
     mainMenu.setColors(CL_FG, CL_BG);
     mainMenu.status = &systemStatus;
 
+    menu.setSettings(sysSettings);
     menu.setColors(CL_FG, CL_BG);
     menu.status = &systemStatus;
 
@@ -630,13 +636,18 @@ void setup() {
     nowPlaying.setColors(CL_FG, CL_BG);
 
     // ── Ініціалізація I2S / PCM5102 ────────────────────────────────
-    if (audioPlayer.begin(sd, sysSettings)) {
-        epd_log("DAC OK");
-        audioPlayer.setEofCallback([](){
-             // We'll handle EOF in the main loop to avoid sync issues withswitchToNowPlaying
-        });
+    if (sysSettings.bluetooth.receiverMode) {
+        epd_log("BT SINK OK");
+        
     } else {
-        epd_log("DAC FAIL!");
+        if (audioPlayer.begin(sd, sysSettings)) {
+            epd_log("DAC OK");
+            audioPlayer.setEofCallback([](){
+                 // We'll handle EOF in the main loop to avoid sync issues withswitchToNowPlaying
+            });
+        } else {
+            epd_log("DAC FAIL!");
+        }
     }
 
     // ── Wi-Fi / Web Manager ───────────────────────────────────────
@@ -789,7 +800,7 @@ void loop() {
             }
             if (settingsScene.wantsExplorer()) {
                 appState = AppState::FILE_EXPLORER;
-                explorerScene.init(display, sd);
+                explorerScene.init(display, sd, &sysSettings);
                 explorerScene.drawFull();
             }
         }
@@ -797,6 +808,11 @@ void loop() {
             if (settingsScene.onBack()) {
                 // Apply changes to all components immediately
                 audioPlayer.applySettings(sysSettings);
+                
+                // === Bluetooth Dynamic Switch ===
+                
+                // ==============================
+
                 mpuManager.applySettings(sysSettings.mpu);
                 
                 // Apply WiFi changes
@@ -812,7 +828,7 @@ void loop() {
                 nowPlaying.setColors(CL_FG, CL_BG);
 
                 // Re-apply SPI freq if it was changed
-                display.init(115200, false, sysSettings.display.spiFreqMhz, false);
+                display.init(115200, false, sysSettings.display.spiFreqMhz, false); 
 
                 appState = AppState::MAIN_MENU;
                 mainMenu.drawFull();

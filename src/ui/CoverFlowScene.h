@@ -32,6 +32,38 @@ public:
     void setSettings(const SystemSettings& settings) { _settings = &settings; }
 
     void drawFull() {
+        if (_settings && _settings->display.softwareFullRefresh) {
+            _disp->setPartialWindow(0, 0, 200, 200);
+            
+            _disp->firstPage();
+            do {
+                if (status) status->drawGlobal(*_disp, 0, 14, 200, _fg, _bg);
+                _renderCarousel();
+                _renderText();
+            } while (_disp->nextPage());
+
+            uint8_t cycles = _settings->display.softwareRefreshCycles;
+            for (uint8_t i = 0; i < cycles; i++) {
+                uint16_t tmp = _fg; _fg = _bg; _bg = tmp;
+                _disp->firstPage();
+                do {
+                    if (status) status->drawGlobal(*_disp, 0, 14, 200, _fg, _bg);
+                    _renderCarousel();
+                    _renderText();
+                } while (_disp->nextPage());
+                
+                tmp = _fg; _fg = _bg; _bg = tmp;
+                _disp->firstPage();
+                do {
+                    if (status) status->drawGlobal(*_disp, 0, 14, 200, _fg, _bg);
+                    _renderCarousel();
+                    _renderText();
+                } while (_disp->nextPage());
+            }
+            _dirty = false;
+            return;
+        }
+
         _disp->setFullWindow();
         _disp->firstPage();
         do {
